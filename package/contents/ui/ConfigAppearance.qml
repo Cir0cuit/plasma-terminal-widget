@@ -7,7 +7,7 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 
-import local.plasmaterminal.core as PT
+import io.github.cir0cuit.plasmaterminal.core as PT
 
 KCM.SimpleKCM {
     id: page

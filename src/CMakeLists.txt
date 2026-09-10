@@ -4,7 +4,7 @@
 # path of plasmashell itself, which is why this half is installed system-wide
 # while the applet package is installed per-user with kpackagetool6.
 
-set(PT_QML_OUTPUT_DIR ${CMAKE_BINARY_DIR}/qml/local/plasmaterminal/core)
+set(PT_QML_OUTPUT_DIR ${CMAKE_BINARY_DIR}/qml/${PT_QML_URI_PATH})
 
 qt_add_qml_module(plasmaterminalcoreplugin
     URI ${PT_QML_URI}
@@ -45,6 +45,6 @@ target_link_libraries(plasmaterminalcoreplugin
 )
 
 install(DIRECTORY ${PT_QML_OUTPUT_DIR}/
-    DESTINATION ${PT_QMLDIR}/local/plasmaterminal/core
+    DESTINATION ${PT_QMLDIR}/${PT_QML_URI_PATH}
     USE_SOURCE_PERMISSIONS
 )

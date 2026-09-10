@@ -34,7 +34,7 @@ package/                 the plasmoid (QML)  ->  ~/.local/share/plasma/plasmoids
   contents/ui/main.qml         PlasmoidItem, desktop + panel representations
   contents/ui/TerminalPane.qml header, terminal, scrollbar, context menu
   contents/ui/Config*.qml      the three settings pages
-src/                     the QML module (C++) ->  /usr/lib64/qt6/qml/local/plasmaterminal/core/
+src/                     the QML module (C++) ->  /usr/lib64/qt6/qml/io/github/cir0cuit/plasmaterminal/core/
   terminalview.*               QQuickItem: input, focus, clipboard, zoom, drops
   terminalsessionex.*          the shell session: env, scrollback, resets
   terminalinfo.*               fonts, colour schemes, Konsole profile lookup
@@ -44,7 +44,11 @@ test/                    a standalone host for the terminal item, plus helpers
 ```
 
 The QML module has to live on Qt's own import path because that is where
-plasmashell resolves imports from; the applet package is per-user.
+plasmashell resolves imports from; the applet package is per-user. That split
+is also why the widget cannot be installed from *Get New Widgets* alone: that
+route unpacks a QML archive into your home directory, and nothing it writes is
+on plasmashell's import path. If the module is missing, the widget says so and
+points here rather than failing with an error box.
 
 ### Vendored code and local modifications
 

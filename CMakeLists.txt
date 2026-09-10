@@ -21,8 +21,10 @@ find_package(KF6Pty REQUIRED)
 
 # The applet id and the QML module URI. Keep them in sync with
 # package/metadata.json and the imports in package/contents/ui/*.qml.
-set(PT_APPLET_ID "local.plasmaterminal")
-set(PT_QML_URI "local.plasmaterminal.core")
+set(PT_APPLET_ID "io.github.cir0cuit.plasmaterminal")
+set(PT_QML_URI "io.github.cir0cuit.plasmaterminal.core")
+# Qt looks the module up under a directory tree that mirrors the URI.
+string(REPLACE "." "/" PT_QML_URI_PATH "${PT_QML_URI}")
 
 # The module has to end up on plasmashell's QML import path, which is Qt's
 # own qml directory - ask Qt where that is rather than guessing lib vs lib64.
@@ -43,7 +45,7 @@ endif()
 add_subdirectory(lib)
 add_subdirectory(src)
 
-message(STATUS "QML module '${PT_QML_URI}' installs to ${PT_QMLDIR}/local/plasmaterminal/core")
+message(STATUS "QML module '${PT_QML_URI}' installs to ${PT_QMLDIR}/${PT_QML_URI_PATH}")
 
 # Optional developer harness: a QApplication that hosts test/harness.qml.
 option(PT_BUILD_HARNESS "Build the interactive test harness" ON)

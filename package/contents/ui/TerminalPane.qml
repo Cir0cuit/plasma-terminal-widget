@@ -13,7 +13,7 @@ import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.kirigami as Kirigami
 
-import local.plasmaterminal.core as PT
+import io.github.cir0cuit.plasmaterminal.core as PT
 
 Item {
     id: pane
@@ -65,10 +65,8 @@ Item {
     property string titleText: i18n("Terminal")
     property bool sessionEnded: false
 
-    Layout.minimumWidth: Kirigami.Units.gridUnit * 12
-    Layout.minimumHeight: Kirigami.Units.gridUnit * 6
-    Layout.preferredWidth: Kirigami.Units.gridUnit * 32
-    Layout.preferredHeight: Kirigami.Units.gridUnit * 18
+    // The size hints live on the Loader in main.qml: that is the item the
+    // containment lays out, and this one only fills it.
 
     // ------------------------------------------------------------------
     // helpers

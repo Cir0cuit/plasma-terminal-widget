@@ -1,4 +1,4 @@
-# Plasma Terminal
+# Plasma Terminal Widget
 
 A terminal emulator that lives on the KDE Plasma 6 desktop as an ordinary
 widget. Drag it, resize it, put it behind your icons, give it the colours and

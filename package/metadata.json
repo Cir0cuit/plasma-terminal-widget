@@ -14,7 +14,7 @@
         "Description": "A real terminal emulator, rendered by the widget itself",
         "EnabledByDefault": true,
         "Icon": "utilities-terminal",
-        "Id": "local.plasmaterminal",
+        "Id": "io.github.cir0cuit.plasmaterminal",
         "License": "GPL-2.0-or-later",
         "Name": "Terminal",
         "OtherContributors": [

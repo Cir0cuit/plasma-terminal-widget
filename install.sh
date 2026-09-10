@@ -14,7 +14,7 @@ echo "Installing the QML module (needs root: it must land on Qt's import path)..
 sudo cmake --install build
 
 echo "Installing the applet for $USER..."
-if kpackagetool6 --type Plasma/Applet --list 2>/dev/null | grep -q '^local\.plasmaterminal$'; then
+if kpackagetool6 --type Plasma/Applet --list 2>/dev/null | grep -q '^io\.github\.cir0cuit\.plasmaterminal$'; then
     kpackagetool6 --type Plasma/Applet --upgrade package
 else
     kpackagetool6 --type Plasma/Applet --install package

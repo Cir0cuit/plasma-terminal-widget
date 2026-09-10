@@ -9,7 +9,7 @@
 import QtQuick
 import QtQuick.Window
 
-import local.plasmaterminal.core as PT
+import io.github.cir0cuit.plasmaterminal.core as PT
 
 Window {
     id: win

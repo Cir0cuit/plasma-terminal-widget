@@ -7,14 +7,17 @@ set -uo pipefail
 cd "$(dirname "$0")"
 
 echo "Removing the applet..."
-kpackagetool6 --type Plasma/Applet --remove local.plasmaterminal || true
+kpackagetool6 --type Plasma/Applet --remove io.github.cir0cuit.plasmaterminal || true
 
 echo "Removing the QML module..."
 if [ -f build/install_manifest.txt ]; then
     sudo xargs -a build/install_manifest.txt rm -f
 else
-    sudo rm -rf /usr/lib64/qt6/qml/local/plasmaterminal/core
+    sudo rm -rf /usr/lib64/qt6/qml/io/github/cir0cuit/plasmaterminal/core
 fi
-sudo rmdir --ignore-fail-on-non-empty /usr/lib64/qt6/qml/local/plasmaterminal /usr/lib64/qt6/qml/local 2>/dev/null || true
+sudo rmdir --ignore-fail-on-non-empty \
+    /usr/lib64/qt6/qml/io/github/cir0cuit/plasmaterminal \
+    /usr/lib64/qt6/qml/io/github/cir0cuit \
+    /usr/lib64/qt6/qml/io/github /usr/lib64/qt6/qml/io 2>/dev/null || true
 
 echo "Done. Restart plasmashell: systemctl --user restart plasma-plasmashell.service"

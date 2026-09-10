@@ -226,7 +226,10 @@ bool BlockArray::setHistorySize(size_t newsize)
 
 void BlockArray::moveBlock(FILE *fion, int cursor, int newpos, char *buffer2)
 {
-    int res = fseek(fion, cursor * blocksize, SEEK_SET);
+    // (patched) the block offsets are computed as long. Multiplying two ints
+    // and widening the result afterwards overflows for a history file above
+    // 2 GiB, which is the offset fseek() would then seek to.
+    int res = fseek(fion, (long)cursor * blocksize, SEEK_SET);
     if (res) {
         perror("fseek");
     }
@@ -235,7 +238,7 @@ void BlockArray::moveBlock(FILE *fion, int cursor, int newpos, char *buffer2)
         perror("fread");
     }
 
-    res = fseek(fion, newpos * blocksize, SEEK_SET);
+    res = fseek(fion, (long)newpos * blocksize, SEEK_SET);
     if (res) {
         perror("fseek");
     }
@@ -329,7 +332,8 @@ void BlockArray::increaseBuffer()
     for (int i = 0; i < runs; i++) {
         // free one block in chain
         int firstblock = (offset + i) % size;
-        res = fseek(fion, firstblock * blocksize, SEEK_SET);
+        // (patched) long offsets, as in moveBlock() above.
+        res = fseek(fion, (long)firstblock * blocksize, SEEK_SET);
         if (res) {
             perror("fseek");
         }
@@ -343,7 +347,7 @@ void BlockArray::increaseBuffer()
             newpos = (cursor - offset + size) % size;
             moveBlock(fion, cursor, newpos, buffer2);
         }
-        res = fseek(fion, i * blocksize, SEEK_SET);
+        res = fseek(fion, (long)i * blocksize, SEEK_SET);
         if (res) {
             perror("fseek");
         }

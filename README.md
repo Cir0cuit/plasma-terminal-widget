@@ -93,7 +93,7 @@ package/                 the plasmoid (QML)  ->  ~/.local/share/plasma/plasmoids
   contents/ui/main.qml         PlasmoidItem, desktop + panel representations
   contents/ui/TerminalPane.qml header, terminal, scrollbar, context menu
   contents/ui/Config*.qml      the three settings pages
-src/                     the QML module (C++) ->  /usr/lib64/qt6/qml/io/github/cir0cuit/plasmaterminal/core/
+src/                     the QML module (C++) ->  <Qt QML import path>/io/github/cir0cuit/plasmaterminal/core/
   terminalview.*               QQuickItem: input, focus, clipboard, zoom, drops
   terminalsessionex.*          the shell session: env, scrollback, resets
   terminalinfo.*               fonts, colour schemes, Konsole profile lookup
@@ -103,10 +103,14 @@ test/                    a standalone host for the terminal item, plus helpers
 ```
 
 The QML module has to live on Qt's own import path because that is where
-plasmashell resolves imports from; the applet package is per-user. That split
-is also why the widget cannot be installed from *Get New Widgets* alone: that
-route unpacks a QML archive into your home directory, and nothing it writes is
-on plasmashell's import path. If the module is missing, the widget says so and
+plasmashell resolves imports from; the applet package is per-user. Where that
+import path is depends on the distribution — `/usr/lib64/qt6/qml` on Fedora,
+`/usr/lib/x86_64-linux-gnu/qt6/qml` on Debian and Ubuntu, `/usr/lib/qt6/qml` on
+Arch — so the build asks Qt itself rather than guessing, and `uninstall.sh`
+reads the path back out of the install manifest. That split is also why the
+widget cannot be installed from *Get New Widgets* alone: that route unpacks a
+QML archive into your home directory, and nothing it writes is on plasmashell's
+import path. If the module is missing, the widget says so and
 points here rather than failing with an error box.
 
 ### Vendored code and local modifications
@@ -209,15 +213,32 @@ implementation, under human direction and review. The vendored terminal core is
 upstream KDE code; the C++ QML module, the plasmoid and the settings pages are
 agent-written.
 
-That is a statement of fact rather than an excuse, but it comes with a limit
-worth stating plainly. The project is new and has run on one configuration:
-Fedora 44, Plasma 6.7 on Wayland, a single HiDPI screen at scale 2. What was
-checked there was checked properly — sessions start and stop, input and
+That is a statement of fact rather than an excuse, but it comes with limits
+worth stating plainly, so here is what has actually been run.
+
+It has been built, installed and used on four distributions:
+
+* **Fedora 44** — Plasma 6.7.5 on Wayland, Qt 6.11.2, GCC 16.2. The development
+  machine, and the one with by far the most hours on it.
+* **Debian** — Plasma 6.7.4 on Wayland, with the module landing on Debian's
+  multiarch QML path rather than Fedora's `lib64`.
+* **Arch** — Plasma 6.6.5 on Wayland, Qt 6.11.1, GCC 16.1: an older Plasma and
+  a newer compiler than this code was written against.
+* **Ubuntu** — with the Debian package names listed above.
+
+On each of them the dependency line installs, the build is clean, the module
+lands on that distribution's own import path, and plasmashell loads it with the
+widget running a live shell. The store package was installed from *Get New
+Widgets* on more than one of them, and the missing-engine placeholder behaves
+as designed.
+
+Fedora is where the detail work was checked: sessions start and stop, input and
 clipboard go through the real event path, teardown leaves no stray shell
 processes, and the widget survives being moved, resized and reconfigured on a
-live desktop. What has not been tried is everything else: X11, other
-distributions and Qt builds, fractional or 1× scaling, multiple monitors, and
-most of the settings in combination with one another. If it misbehaves, the
+live desktop.
+
+What has not been tried is X11, fractional or 1× scaling, multiple monitors,
+and most of the settings in combination with one another. If it misbehaves, the
 useful bug report is the one that says what your setup was.
 
 ## Contributing

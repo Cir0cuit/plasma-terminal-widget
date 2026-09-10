@@ -9,6 +9,42 @@ drawn by the shell itself.
 
 ## Build and install
 
+### Dependencies
+
+Install these first — the build fails without them. You need CMake 3.20 or
+newer, a C++ compiler, Qt 6.5 or newer (Core, Gui, Qml, Quick, Widgets and
+Core5Compat) and the KDE Frameworks 6 libraries KCoreAddons and KPty.
+
+**Fedora**
+
+```bash
+sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel \
+    qt6-qt5compat-devel kf6-kcoreaddons-devel kf6-kpty-devel
+```
+
+**Debian**
+
+```bash
+sudo apt install cmake build-essential qt6-base-dev qt6-declarative-dev \
+    qt6-5compat-dev libkf6coreaddons-dev libkf6pty-dev
+```
+
+**Ubuntu** — the same package names as Debian, on a release new enough to ship
+Plasma 6 (24.04 or later; Kubuntu or KDE neon).
+
+**Arch**
+
+```bash
+sudo pacman -S --needed base-devel cmake qt6-base qt6-declarative qt6-5compat \
+    kcoreaddons kpty
+```
+
+`install.sh` also calls `kpackagetool6`, which comes with Plasma 6 itself, so
+it is already there on any machine that can run the widget. If it is missing,
+it lives in `kpackagetool6` on Debian and Ubuntu and in `kpackage` on Arch.
+
+### Build
+
 ```bash
 git clone https://github.com/Cir0cuit/plasma-terminal-widget.git
 cd plasma-terminal-widget
@@ -19,13 +55,6 @@ cd plasma-terminal-widget
 QML module with `sudo cmake --install` (it has to land on Qt's import path) and
 the applet with `kpackagetool6` for the current user only. It will ask for your
 password for the first of those.
-
-Build dependencies on Fedora 44:
-
-```bash
-sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel \
-    qt6-qt5compat-devel kf6-kcoreaddons-devel kf6-kpty-devel
-```
 
 Restart plasmashell afterwards so it picks up the new QML module:
 

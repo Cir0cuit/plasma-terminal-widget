@@ -97,6 +97,10 @@ and marked `(patched)` at each site:
    environment at launch, so repeated starts do not accumulate copies of it.
 3. `TerminalSession.h` — added a `konsoleSession()` accessor, so scrollback and
    emulation resets can be driven from QML.
+4. `BlockArray.cpp` — the four block offsets passed to `fseek()` are computed
+   as `long` rather than multiplied as `int` and widened afterwards, which
+   overflows above a 2 GiB history file. Found by CodeQL; the code is an
+   unused history backend, so nothing in the widget can reach it.
 
 ## Settings
 

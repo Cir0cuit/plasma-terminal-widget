@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0
+                          http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+
+    <kcfgfile name=""/>
+
+    <group name="Appearance">
+        <entry name="fontFamily" type="String">
+            <label>Terminal font family; empty means the Konsole profile font</label>
+            <default></default>
+        </entry>
+        <entry name="fontSize" type="Int">
+            <label>Terminal font size in points; 0 means the Konsole profile size</label>
+            <default>0</default>
+        </entry>
+        <entry name="lineSpacing" type="Int">
+            <label>Extra pixels between lines</label>
+            <default>0</default>
+        </entry>
+        <entry name="colorScheme" type="String">
+            <label>Colour scheme name; empty means the Konsole profile scheme</label>
+            <default></default>
+        </entry>
+        <entry name="terminalOpacity" type="Double">
+            <label>Opacity of the terminal background, 0..1</label>
+            <default>1.0</default>
+        </entry>
+        <entry name="backgroundMode" type="Int">
+            <label>0 = Plasma panel background, 1 = translucent, 2 = none</label>
+            <default>0</default>
+        </entry>
+        <entry name="padding" type="Int">
+            <label>Padding between the widget edge and the text, in pixels</label>
+            <default>6</default>
+        </entry>
+        <entry name="cursorShape" type="Int">
+            <label>0 = block, 1 = underline, 2 = I-beam</label>
+            <default>0</default>
+        </entry>
+        <entry name="blinkingCursor" type="Bool">
+            <label>Blink the cursor</label>
+            <default>false</default>
+        </entry>
+        <entry name="fullCursorHeight" type="Bool">
+            <label>Draw the cursor over the full line height</label>
+            <default>false</default>
+        </entry>
+        <entry name="boldIntense" type="Bool">
+            <label>Draw bold text in the intense colour variant</label>
+            <default>true</default>
+        </entry>
+        <entry name="antialiasText" type="Bool">
+            <label>Antialias glyphs</label>
+            <default>true</default>
+        </entry>
+        <entry name="showHeader" type="Bool">
+            <label>Show the title/toolbar strip above the terminal</label>
+            <default>false</default>
+        </entry>
+        <entry name="showScrollBar" type="Bool">
+            <label>Show a scrollbar for the scrollback buffer</label>
+            <default>true</default>
+        </entry>
+        <entry name="scrollBarAutoHide" type="Bool">
+            <label>Only show the scrollbar while the pointer is over the widget</label>
+            <default>true</default>
+        </entry>
+    </group>
+
+    <group name="Shell">
+        <entry name="shellProgram" type="String">
+            <label>Program to run; empty means $SHELL</label>
+            <default></default>
+        </entry>
+        <entry name="shellArgs" type="String">
+            <label>Arguments for the program, separated by spaces</label>
+            <default></default>
+        </entry>
+        <entry name="workingDirectory" type="String">
+            <label>Initial working directory; empty means the home directory</label>
+            <default></default>
+        </entry>
+        <entry name="environmentVars" type="String">
+            <label>Extra environment variables, one NAME=value pair per line</label>
+            <default>TERM=xterm-256color
+COLORTERM=truecolor</default>
+        </entry>
+        <entry name="startupCommand" type="String">
+            <label>Command typed into the shell once it starts</label>
+            <default></default>
+        </entry>
+        <entry name="scrollbackLines" type="Int">
+            <label>Lines of scrollback to keep</label>
+            <default>10000</default>
+        </entry>
+        <entry name="unlimitedScrollback" type="Bool">
+            <label>Keep unlimited scrollback in a temporary file</label>
+            <default>false</default>
+        </entry>
+        <entry name="flowControl" type="Bool">
+            <label>Let Ctrl+S / Ctrl+Q suspend and resume output</label>
+            <default>true</default>
+        </entry>
+        <entry name="autoStart" type="Bool">
+            <label>Start the shell as soon as the widget loads</label>
+            <default>true</default>
+        </entry>
+    </group>
+
+    <group name="Behavior">
+        <entry name="middleClickPaste" type="Bool">
+            <label>Paste the primary selection on middle click</label>
+            <default>false</default>
+        </entry>
+        <entry name="copyOnSelect" type="Bool">
+            <label>Copy to the clipboard as soon as text is selected</label>
+            <default>false</default>
+        </entry>
+        <entry name="builtInShortcuts" type="Bool">
+            <label>Handle Ctrl+Shift+C/V and Ctrl+Shift+plus/minus/0 in the widget</label>
+            <default>true</default>
+        </entry>
+        <entry name="wheelZoom" type="Bool">
+            <label>Ctrl+wheel changes the font size</label>
+            <default>true</default>
+        </entry>
+        <entry name="focusOnClick" type="Bool">
+            <label>Take keyboard focus when the terminal is clicked</label>
+            <default>true</default>
+        </entry>
+        <entry name="readOnly" type="Bool">
+            <label>Ignore all keyboard input</label>
+            <default>false</default>
+        </entry>
+        <entry name="bellMode" type="Int">
+            <label>0 = system beep, 1 = notification, 2 = visual, 3 = ignore</label>
+            <default>3</default>
+        </entry>
+        <entry name="wordCharacters" type="String">
+            <label>Characters counted as part of a word on double click</label>
+            <default>:@-./_~</default>
+        </entry>
+        <entry name="exitAction" type="Int">
+            <label>0 = start a new session, 1 = offer a restart button, 2 = leave the last screen</label>
+            <default>0</default>
+        </entry>
+    </group>
+</kcfg>

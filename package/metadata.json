@@ -1,0 +1,43 @@
+{
+    "KPackageStructure": "Plasma/Applet",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "Bartłomiej Smolnik",
+                "Task": "Widget, QML module and packaging",
+                "Website": "https://github.com/Cir0cuit"
+            }
+        ],
+        "BugReportUrl": "https://github.com/Cir0cuit/plasma-terminal-widget/issues",
+        "Category": "Utilities",
+        "Copyright": "© 2026 Bartłomiej Smolnik. Terminal core © the Konsole, QMLTermWidget and qmlkonsole authors.",
+        "Description": "A real terminal emulator, rendered by the widget itself",
+        "EnabledByDefault": true,
+        "Icon": "utilities-terminal",
+        "Id": "local.plasmaterminal",
+        "License": "GPL-2.0-or-later",
+        "Name": "Terminal",
+        "OtherContributors": [
+            {
+                "Name": "Lars Doelle",
+                "Task": "Original Konsole terminal emulation"
+            },
+            {
+                "Name": "Robert Knight",
+                "Task": "Konsole terminal emulation"
+            },
+            {
+                "Name": "Dmitry Zagnoyko",
+                "Task": "QMLTermWidget session bindings"
+            },
+            {
+                "Name": "Jonah Brüchert",
+                "Task": "qmlkonsole, the Qt6 port of the terminal core",
+                "Website": "https://invent.kde.org/utilities/qmlkonsole"
+            }
+        ],
+        "Version": "1.0",
+        "Website": "https://github.com/Cir0cuit/plasma-terminal-widget"
+    },
+    "X-Plasma-API-Minimum-Version": "6.0"
+}

@@ -7,6 +7,36 @@ drawn by the shell itself.
 
 ![four terminal widgets, each with its own font, colour scheme and background](doc/multiple-widgets.png)
 
+## Build and install
+
+```bash
+git clone https://github.com/Cir0cuit/plasma-terminal-widget.git
+cd plasma-terminal-widget
+./install.sh
+```
+
+`install.sh` configures and builds the project, then installs both halves: the
+QML module with `sudo cmake --install` (it has to land on Qt's import path) and
+the applet with `kpackagetool6` for the current user only. It will ask for your
+password for the first of those.
+
+Build dependencies on Fedora 44:
+
+```bash
+sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel \
+    qt6-qt5compat-devel kf6-kcoreaddons-devel kf6-kpty-devel
+```
+
+Restart plasmashell afterwards so it picks up the new QML module:
+
+```bash
+systemctl --user restart plasma-plasmashell.service
+```
+
+Then add it from the desktop context menu: *Add Widgets… → Terminal*. To remove
+everything again, run `./uninstall.sh` — take the widgets off the desktop
+first, or the shell will show an empty placeholder until it is restarted.
+
 ## How it works
 
 The terminal view is a `QQuickPaintedItem`, so it is a first-class item in
@@ -67,36 +97,6 @@ and marked `(patched)` at each site:
    environment at launch, so repeated starts do not accumulate copies of it.
 3. `TerminalSession.h` — added a `konsoleSession()` accessor, so scrollback and
    emulation resets can be driven from QML.
-
-## Build and install
-
-```bash
-git clone https://github.com/Cir0cuit/plasma-terminal-widget.git
-cd plasma-terminal-widget
-./install.sh
-```
-
-`install.sh` configures and builds the project, then installs both halves: the
-QML module with `sudo cmake --install` (it has to land on Qt's import path) and
-the applet with `kpackagetool6` for the current user only. It will ask for your
-password for the first of those.
-
-Build dependencies on Fedora 44:
-
-```bash
-sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel \
-    qt6-qt5compat-devel kf6-kcoreaddons-devel kf6-kpty-devel
-```
-
-Restart plasmashell afterwards so it picks up the new QML module:
-
-```bash
-systemctl --user restart plasma-plasmashell.service
-```
-
-Then add it from the desktop context menu: *Add Widgets… → Terminal*. To remove
-everything again, run `./uninstall.sh` — take the widgets off the desktop
-first, or the shell will show an empty placeholder until it is restarted.
 
 ## Settings
 

@@ -15,6 +15,8 @@ import org.kde.kirigami as Kirigami
 
 import io.github.cir0cuit.plasmaterminal.core as PT
 
+import "version.js" as Version
+
 Item {
     id: pane
 
@@ -34,6 +36,32 @@ Item {
         }
         return "Monospace";
     }
+
+    // An engine older than this package lacks the font style lookups, so
+    // the terminal keeps the regular face until it is rebuilt.
+    readonly property bool engineOutdated: Version.engineOutdated(PT.TerminalInfo)
+
+    // The style is handed to the terminal as a weight and a slant, not by
+    // name, so bold text can still pick the family's real Bold face. An empty
+    // style means the regular face - or, while the family itself follows the
+    // Konsole profile, whatever style that profile uses.
+    readonly property var fontStyleInfo: {
+        if (engineOutdated) {
+            return {};
+        }
+        if (cfg.fontStyle.length > 0) {
+            return PT.TerminalInfo.fontStyleInfo(fontFamily, cfg.fontStyle);
+        }
+        if (cfg.fontFamily.length === 0 && konsoleProfile.fontWeight !== undefined && konsoleProfile.fontFamily === fontFamily) {
+            return {
+                weight: konsoleProfile.fontWeight,
+                italic: konsoleProfile.fontItalic === true
+            };
+        }
+        return {};
+    }
+    readonly property int fontWeight: fontStyleInfo.weight !== undefined ? fontStyleInfo.weight : Font.Normal
+    readonly property bool fontItalic: fontStyleInfo.italic === true
 
     readonly property string colorScheme: {
         if (cfg.colorScheme.length > 0 && availableSchemes.indexOf(cfg.colorScheme) >= 0) {
@@ -446,6 +474,8 @@ Item {
 
                 font.family: pane.fontFamily
                 font.pointSize: pane.fontSize
+                font.weight: pane.fontWeight
+                font.italic: pane.fontItalic
                 lineSpacing: cfg.lineSpacing
                 colorScheme: pane.colorScheme
                 backgroundOpacity: cfg.terminalOpacity

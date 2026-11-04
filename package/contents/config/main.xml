@@ -11,6 +11,10 @@
             <label>Terminal font family; empty means the Konsole profile font</label>
             <default></default>
         </entry>
+        <entry name="fontStyle" type="String">
+            <label>Terminal font style, e.g. Light or Medium; empty means the family's regular style, or the Konsole profile style while the family follows Konsole</label>
+            <default></default>
+        </entry>
         <entry name="fontSize" type="Int">
             <label>Terminal font size in points; 0 means the Konsole profile size</label>
             <default>0</default>

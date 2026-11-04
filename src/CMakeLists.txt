@@ -37,6 +37,9 @@ qt_add_resources(plasmaterminalcoreplugin "extraschemes"
         "color-schemes/Tokyo Night.colorscheme"
 )
 
+# Reported to QML as TerminalInfo.engineVersion; see package/contents/ui/version.js.
+target_compile_definitions(plasmaterminalcoreplugin PRIVATE PT_ENGINE_VERSION="${PROJECT_VERSION}")
+
 target_link_libraries(plasmaterminalcoreplugin
     PRIVATE
         PlasmaTerminalCore

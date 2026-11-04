@@ -11,14 +11,61 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+#include <algorithm>
+#include <cstdlib>
+
 #include <pwd.h>
 #include <unistd.h>
 
 using namespace Konsole;
 
+namespace
+{
+struct StyleKey {
+    QString name;
+    int weight;
+    bool slanted;
+};
+
+// What QFontDatabase knows about one style. The face is looked up through
+// QFontDatabase::font() because that reports oblique faces (DejaVu's
+// "Oblique") as slanted, where QFontDatabase::italic() only counts "Italic".
+StyleKey styleKey(const QString &family, const QString &style)
+{
+    const QFont font = QFontDatabase::font(family, style, 10);
+    return {style, font.weight(), font.style() != QFont::StyleNormal};
+}
+
+QList<StyleKey> styleKeys(const QString &family)
+{
+    QList<StyleKey> keys;
+    QStringList seen;
+    const QStringList styles = QFontDatabase::styles(family);
+    for (const QString &style : styles) {
+        if (style.isEmpty() || seen.contains(style)) {
+            continue;
+        }
+        seen << style;
+        keys << styleKey(family, style);
+    }
+    std::stable_sort(keys.begin(), keys.end(), [](const StyleKey &a, const StyleKey &b) {
+        if (a.slanted != b.slanted) {
+            return !a.slanted;
+        }
+        return a.weight < b.weight;
+    });
+    return keys;
+}
+}
+
 TerminalInfo::TerminalInfo(QObject *parent)
     : QObject(parent)
 {
+}
+
+QString TerminalInfo::engineVersion() const
+{
+    return QStringLiteral(PT_ENGINE_VERSION);
 }
 
 QStringList TerminalInfo::monospaceFamilies() const
@@ -49,6 +96,46 @@ QStringList TerminalInfo::allFamilies() const
 bool TerminalInfo::hasFamily(const QString &family) const
 {
     return QFontDatabase::families().contains(family, Qt::CaseInsensitive);
+}
+
+QStringList TerminalInfo::fontStyles(const QString &family) const
+{
+    QStringList names;
+    const QList<StyleKey> keys = styleKeys(family);
+    for (const StyleKey &key : keys) {
+        names << key.name;
+    }
+    return names;
+}
+
+QVariantMap TerminalInfo::fontStyleInfo(const QString &family, const QString &style) const
+{
+    QVariantMap info;
+    if (style.isEmpty() || !QFontDatabase::styles(family).contains(style)) {
+        return info;
+    }
+    const StyleKey key = styleKey(family, style);
+    info[QStringLiteral("weight")] = key.weight;
+    info[QStringLiteral("italic")] = key.slanted;
+    return info;
+}
+
+QString TerminalInfo::regularFontStyle(const QString &family) const
+{
+    const QList<StyleKey> keys = styleKeys(family);
+    const StyleKey *best = nullptr;
+    for (const StyleKey &key : keys) {
+        if (key.slanted) {
+            continue;
+        }
+        if (!best || std::abs(key.weight - QFont::Normal) < std::abs(best->weight - QFont::Normal)) {
+            best = &key;
+        }
+    }
+    if (best) {
+        return best->name;
+    }
+    return keys.isEmpty() ? QString() : keys.first().name;
 }
 
 QStringList TerminalInfo::colorSchemes() const
@@ -134,6 +221,32 @@ QVariantMap TerminalInfo::konsoleProfile() const
             profile[QStringLiteral("fontFamily")] = font.family();
             if (font.pointSize() > 0) {
                 profile[QStringLiteral("fontSize")] = font.pointSize();
+            }
+            // Konsole saves the style both as a weight and slant and, when one
+            // was picked by name, as a style name. The name is only for
+            // display; the weight and slant are what the terminal is given.
+            QString styleName = font.styleName();
+            if (!styleName.isEmpty() && QFontDatabase::styles(font.family()).contains(styleName)) {
+                const StyleKey key = styleKey(font.family(), styleName);
+                profile[QStringLiteral("fontWeight")] = key.weight;
+                profile[QStringLiteral("fontItalic")] = key.slanted;
+            } else {
+                // Older profiles carry only the weight and slant: name the
+                // installed style that has exactly those, if there is one.
+                styleName.clear();
+                const bool slanted = font.style() != QFont::StyleNormal;
+                const QList<StyleKey> keys = styleKeys(font.family());
+                for (const StyleKey &key : keys) {
+                    if (key.weight == font.weight() && key.slanted == slanted) {
+                        styleName = key.name;
+                        break;
+                    }
+                }
+                profile[QStringLiteral("fontWeight")] = font.weight();
+                profile[QStringLiteral("fontItalic")] = slanted;
+            }
+            if (!styleName.isEmpty()) {
+                profile[QStringLiteral("fontStyle")] = styleName;
             }
         }
     }

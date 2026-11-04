@@ -66,6 +66,47 @@ Then add it from the desktop context menu: *Add Widgets… → Terminal*. To rem
 everything again, run `./uninstall.sh` — take the widgets off the desktop
 first, or the shell will show an empty placeholder until it is restarted.
 
+### Updating
+
+From the clone you installed with:
+
+```bash
+cd plasma-terminal-widget
+./update.sh
+```
+
+`update.sh` pulls the new version, rebuilds, reinstalls both halves the same
+way `install.sh` does, and then offers to restart plasmashell — Plasma keeps
+the old version loaded until it restarts. Restarting ends the shells running
+inside terminal widgets, so it asks first; `--restart` and `--no-restart`
+answer in advance. It refuses to pull over local changes rather than merge
+them into what it installs.
+
+Doing the same by hand:
+
+```bash
+git pull
+./install.sh
+systemctl --user restart plasma-plasmashell.service
+```
+
+Things worth knowing:
+
+* **Your settings stay.** They are stored by Plasma, not in either installed
+  half, and settings added by a new version start out at values that keep the
+  old behaviour.
+* **Update both halves together.** If the widget came from *Get New Widgets*,
+  Plasma updates the widget package from there, but the engine only changes
+  when it is rebuilt — pull and run `./install.sh` (or `./update.sh`) as well.
+  A widget package newer than its engine keeps working without the new
+  features, and its *Appearance* settings page says which engine version it
+  found and which it needs.
+* **No git clone?** Download the new version and run its `./install.sh`; it
+  upgrades an existing installation in place.
+
+[CHANGELOG.md](CHANGELOG.md) lists what each version changed and which halves
+it touched.
+
 ## How it works
 
 The terminal view is a `QQuickPaintedItem`, so it is a first-class item in
@@ -93,6 +134,7 @@ package/                 the plasmoid (QML)  ->  ~/.local/share/plasma/plasmoids
   contents/ui/main.qml         PlasmoidItem, desktop + panel representations
   contents/ui/TerminalPane.qml header, terminal, scrollbar, context menu
   contents/ui/Config*.qml      the three settings pages
+  contents/ui/version.js       the oldest engine this package works with
 src/                     the QML module (C++) ->  <Qt QML import path>/io/github/cir0cuit/plasmaterminal/core/
   terminalview.*               QQuickItem: input, focus, clipboard, zoom, drops
   terminalsessionex.*          the shell session: env, scrollback, resets
@@ -100,6 +142,7 @@ src/                     the QML module (C++) ->  <Qt QML import path>/io/github
   color-schemes/               8 extra schemes on top of the 13 built in
 lib/                     terminal core, vendored (GPL-2.0-or-later)
 test/                    a standalone host for the terminal item, plus helpers
+install.sh / update.sh / uninstall.sh
 ```
 
 The QML module has to live on Qt's own import path because that is where
@@ -137,7 +180,8 @@ and marked `(patched)` at each site:
 
 ## Settings
 
-**Appearance** — follow your Konsole profile font or pick a family and size,
+**Appearance** — follow your Konsole profile font or pick a family, style
+(Light, Medium, Italic, … — whatever the family is installed in) and size,
 line spacing, colour scheme (21 ship with the widget, and any schemes Konsole
 already has installed are listed too) with a live preview swatch, widget
 background (Plasma frame / translucent / none), terminal opacity, padding,
@@ -154,7 +198,8 @@ shortcuts, read-only mode, terminal bell, and what to do when the shell exits
 (new session / restart button / leave the last screen).
 
 Leaving the font and colour scheme unset means *follow my default Konsole
-profile*, so the widget matches the terminal you already use.
+profile*, so the widget matches the terminal you already use — font style
+included.
 
 ![four widgets with the title strip off and a translucent background](doc/monitoring-dashboard.png)
 
@@ -258,6 +303,8 @@ the widget unusable, or that fix bugs which do not exist. Reviewing that costs
 more than writing it did, and repeatedly submitting it is grounds for a ban.
 
 If you are unsure whether an idea fits, open an issue before writing the code.
+
+Releases follow the checklist in [doc/releasing.md](doc/releasing.md).
 
 ## Credits
 

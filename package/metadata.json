@@ -36,7 +36,7 @@
                 "Website": "https://invent.kde.org/utilities/qmlkonsole"
             }
         ],
-        "Version": "1.0",
+        "Version": "1.1",
         "Website": "https://github.com/Cir0cuit/plasma-terminal-widget"
     },
     "X-Plasma-API-Minimum-Version": "6.0"

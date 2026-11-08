@@ -71,41 +71,40 @@ first, or the shell will show an empty placeholder until it is restarted.
 
 ### Updating
 
-Updating keeps your widgets and all their settings. In the
-`plasma-terminal-widget` folder that `git clone` created, run:
+Updating keeps your widgets and all their settings. From the folder where you
+ran `git clone` (usually your home folder), run:
 
 ```bash
-./update.sh
+cd plasma-terminal-widget
+git pull && ./update.sh
 ```
 
-It fetches the new version with `git pull`, rebuilds it and installs both
-halves the way `install.sh` does, so it asks for your password once. Then it
-shows what changed and offers to restart plasmashell: Plasma keeps running the
-old version until it restarts, and restarting ends the shells running in
-terminal widgets, so it asks first. `./update.sh --restart` and
-`./update.sh --no-restart` answer in advance.
-
-If it stops instead:
-
-* **There is no `update.sh`** — either the terminal is not in that folder, or
-  your copy is older than 1.1, which added the script. In the folder, run
-  `git pull` once, then `./update.sh`.
-* **`this checkout has local changes`** — files in the folder were edited. Set
-  the edits aside with `git stash`, then run `./update.sh` again.
-* **`git could not update this checkout`** — git's own message just above says
-  why: no network, a release tag checked out (run `git switch main`), or
-  commits of your own (run `git pull --rebase`). Then run `./update.sh` again.
-* **`this copy was not cloned with git`** — see *Without git* below.
-
-**Without git.** On GitHub, choose *Code → Download ZIP*, unpack it and run
-`./install.sh` in the unpacked folder. It upgrades the installed version in
-place; then restart plasmashell.
+`git pull` downloads the new version, including `update.sh` itself if your
+copy is from 1.0, which did not have it. `./update.sh` builds the new version
+and installs both halves the way `install.sh` does, so it asks for your
+password once. Then it shows what changed and offers to restart plasmashell:
+Plasma keeps running the old version until it restarts, and restarting ends
+the shells running in terminal widgets, so it asks first.
+`./update.sh --restart` and `./update.sh --no-restart` answer in advance.
 
 **Widget from Get New Widgets.** *Get New Widgets* updates only the widget
-package. The engine changes only when it is rebuilt, so run `./update.sh` in
-the folder you built it from as well. Until then a newer widget package keeps
-working without its new features, and its *Appearance* settings page says
-which engine version it found and which it needs.
+package; the engine changes only when it is rebuilt. Until then the widget
+keeps working without its new features, and its *Appearance* settings page
+says which engine version it found and which it needs. To rebuild the engine,
+run the commands above. If you no longer have the folder, run the first two
+commands under *Build*, then `./update.sh`.
+
+**Without git.** On GitHub, choose *Code → Download ZIP*, unpack it and run
+`./update.sh` in the unpacked folder.
+
+If `git pull` stops with an error:
+
+* **`Your local changes to the following files would be overwritten`** —
+  files in the folder were edited. Set the edits aside with `git stash`, then
+  run `git pull && ./update.sh` again.
+* **`not a git repository`** — the terminal is not in the folder that
+  `git clone` created, or the copy was downloaded rather than cloned; for
+  that, see *Without git*.
 
 **Restarting plasmashell yourself:**
 

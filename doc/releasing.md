@@ -1,7 +1,7 @@
 # Releasing
 
-What a maintainer does so that existing users can update with `./update.sh`,
-or with `./install.sh` from a downloaded copy, without losing anything.
+What a maintainer does so that existing users can update with `git pull` and
+`./update.sh`, without losing anything.
 
 ## Versions
 
@@ -38,24 +38,22 @@ Users' settings live in Plasma's config, keyed by the entry names in
    affected QML degrades when `engineOutdated` is true.
 3. Add a `CHANGELOG.md` entry under a heading `## X.Y.Z — YYYY-MM-DD` (the
    day you tag): which halves changed (engine, widget package or both), what
-   changed for users, and anything an update needs beyond `./update.sh`. Keep
-   the bare version as the heading's second word and leave older headings as
-   they are: `update.sh` looks for the user's old version there and prints
-   only the entries above it.
+   changed for users, and anything an update needs beyond `git pull` and
+   `./update.sh`. Keep the bare version as the heading's second word and
+   leave older headings as they are: `update.sh` looks for the user's old
+   version there and prints only the entries above it.
 4. Test the update the way users will run it. In a fresh clone of `main` (the
    previous release) run `./install.sh`, restart plasmashell, add a widget and
-   change a few of its settings. Then point that clone at the release with
-   `git branch -u origin/<release branch>`, so the previous release's own
-   `update.sh` does the pull, as it will for users.
+   change a few of its settings.
    * If the engine changed, first upgrade only the widget package from your
      checkout of the release with
      `kpackagetool6 --type Plasma/Applet --upgrade package`, restart
      plasmashell, and check that the widget keeps working on the old engine
      and that its *Appearance* page says the engine is outdated.
-   * In the clone, run the command the previous release's users are told to
-     run: `./update.sh`, or for 1.0, which has none, `git pull` and then
-     `./update.sh`. Check that it prints the new CHANGELOG entry and that the
-     widgets come back with their settings unchanged.
+   * In the clone, run `git pull origin <release branch>` (after step 5,
+     users get the same commits with a plain `git pull`), then `./update.sh`.
+     Check that it prints the new CHANGELOG entry and that the widgets come
+     back with their settings unchanged.
 5. Merge to `main` (users' clones pull from it), then tag the release commit
    `vX.Y.Z` and push the tag.
 6. If the widget package changed, build the archive with

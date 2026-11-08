@@ -9,7 +9,7 @@ The widget comes in two halves that are installed separately: the **engine**
 says which halves changed. When the engine changed, updating only the widget
 package is not enough; the widget's settings pages say so if it happens.
 
-## 1.1.0 — 2026-11-04
+## 1.1.0 — 2026-11-08
 
 Halves changed: **engine and widget package** — rebuild the engine.
 

@@ -11,9 +11,9 @@ drawn by the shell itself.
 
 ### Dependencies
 
-Install these first — the build fails without them. You need CMake 3.20 or
-newer, a C++ compiler, Qt 6.5 or newer (Core, Gui, Qml, Quick, Widgets and
-Core5Compat) and the KDE Frameworks 6 libraries KCoreAddons and KPty.
+Install these first. The build needs CMake 3.20 or newer, a C++ compiler,
+Qt 6.5 or newer (Core, Gui, Qml, Quick, Widgets and Core5Compat) and the KDE
+Frameworks 6 libraries KCoreAddons and KPty, and fails without them.
 
 **Fedora**
 
@@ -22,15 +22,19 @@ sudo dnf install cmake gcc-c++ qt6-qtbase-devel qt6-qtdeclarative-devel \
     qt6-qt5compat-devel kf6-kcoreaddons-devel kf6-kpty-devel
 ```
 
-**Debian**
+**Debian / Ubuntu** — Debian 13 or later, Ubuntu 26.04 or later. Debian 12 and
+Ubuntu 24.04 ship Qt 6.4 and no KDE Frameworks 6 build of KPty.
 
 ```bash
 sudo apt install cmake build-essential qt6-base-dev qt6-declarative-dev \
-    qt6-5compat-dev libkf6coreaddons-dev libkf6pty-dev
+    qt6-5compat-dev libkf6coreaddons-dev libkf6pty-dev \
+    qml6-module-org-kde-notifications
 ```
 
-**Ubuntu** — the same command as Debian, on Ubuntu 26.04 or later. Ubuntu 24.04
-ships Qt 6.4 and no KDE Frameworks 6 build of KPty.
+The build does not need the last package: it is the QML module for desktop
+notifications, which the terminal bell's *Notification* mode uses. A full
+Plasma desktop already has it; a minimal install may not. On Fedora and Arch
+it is part of the KNotifications package, which Plasma itself depends on.
 
 **Arch**
 
@@ -54,7 +58,9 @@ cd plasma-terminal-widget
 `install.sh` configures and builds the project, then installs both halves: the
 QML module with `sudo cmake --install` (it has to land on Qt's import path) and
 the applet with `kpackagetool6` for the current user only. It will ask for your
-password for the first of those.
+password for the first of those. Run it as yourself, not with `sudo`: the
+applet goes to the user who runs it. Where sudo is not installed, it uses
+`su`, which asks for root's password instead.
 
 Restart plasmashell afterwards so it picks up the new QML module:
 
@@ -87,12 +93,34 @@ Plasma keeps running the old version until it restarts, and restarting ends
 the shells running in terminal widgets, so it asks first.
 `./update.sh --restart` and `./update.sh --no-restart` answer in advance.
 
-**Widget from Get New Widgets.** *Get New Widgets* updates only the widget
-package; the engine changes only when it is rebuilt. Until then the widget
-keeps working without its new features, and its *Appearance* settings page
-says which engine version it found and which it needs. To rebuild the engine,
-run the commands above. If you no longer have the folder, run the first two
-commands under *Build*, then `./update.sh`.
+Before it builds, `update.sh` says what it found: `Updating 1.0.0 -> 1.1.0.`
+for an ordinary update, that only the engine is old when *Get New Widgets* has
+already updated the widget, or that no engine is installed yet. The changes it
+lists afterwards start from the older of the two halves, so an earlier update
+from *Get New Widgets* does not hide them.
+
+If the widget package or the engine installed now is newer than the copy in
+the folder, `update.sh` and `install.sh` stop and change nothing, so an old
+copy never puts an older version back; run `git pull` first. Copies from 1.0
+do not check this, so in one of those, run `git pull` before anything else.
+To go back to an older version on purpose, run `./uninstall.sh` and then
+`./update.sh` (`./install.sh` for 1.0) in a copy of that version, and restart
+Plasma only after both. Leave the widgets on the desktop: they keep their
+settings.
+
+**Widget updated from Get New Widgets.** *Get New Widgets* and *Discover*
+update only the widget package; the engine changes only when it is rebuilt.
+Plasma keeps running the old widget until it restarts, and neither of them
+tells you to restart it: do that after such an update (see below). If the
+engine is then older than the widget, the widget keeps working, and its
+settings pages say the engine is outdated and name what on each page waits
+for it, such as font styles or the terminal bell. `git pull && ./update.sh`,
+as above, then rebuilds the engine and shows what changed.
+
+**No folder, or no engine yet.** If the folder is gone, or the widget came
+from *Get New Widgets* and the engine was never built, install the
+dependencies above, run the first two commands under *Build*, then
+`./update.sh`.
 
 **Without git.** On GitHub, choose *Code → Download ZIP*, unpack it and run
 `./update.sh` in the unpacked folder.
@@ -145,6 +173,8 @@ package/                 the plasmoid (QML)  ->  ~/.local/share/plasma/plasmoids
   contents/ui/main.qml         PlasmoidItem, desktop + panel representations
   contents/ui/TerminalPane.qml header, terminal, scrollbar, context menu
   contents/ui/Config*.qml      the three settings pages
+  contents/ui/EngineStatus.qml settings notice: engine missing or outdated
+  contents/ui/EngineInfo.qml   the settings pages' only import of the engine
   contents/ui/version.js       the oldest engine this package works with
 src/                     the QML module (C++) ->  <Qt QML import path>/io/github/cir0cuit/plasmaterminal/core/
   terminalview.*               QQuickItem: input, focus, clipboard, zoom, drops
@@ -153,6 +183,8 @@ src/                     the QML module (C++) ->  <Qt QML import path>/io/github
   color-schemes/               8 extra schemes on top of the 13 built in
 lib/                     terminal core, vendored (GPL-2.0-or-later)
 test/                    a standalone host for the terminal item, plus helpers
+  update-routes.sh             tests each update path from the previous release
+scripts/common.sh        what install.sh, update.sh and uninstall.sh share
 install.sh / update.sh / uninstall.sh
 ```
 
@@ -164,8 +196,8 @@ Arch — so the build asks Qt itself rather than guessing, and `uninstall.sh`
 reads the path back out of the install manifest. That split is also why the
 widget cannot be installed from *Get New Widgets* alone: that route unpacks a
 QML archive into your home directory, and nothing it writes is on plasmashell's
-import path. If the module is missing, the widget says so and
-points here rather than failing with an error box.
+import path. If the module is missing, the widget and its settings pages say
+so and point here rather than failing with an error box.
 
 ### Vendored code and local modifications
 
@@ -282,6 +314,19 @@ stderr is not a tty, so read them with `journalctl --user -t pt-harness`.
 `test/pointer.sh` moves the pointer to an exact position under KWin, which the
 interactive tests need because ydotool emits accelerated relative motion.
 
+`test/update-routes.sh` tests every way to get from the previous release to the
+working tree: with `git pull` and `./update.sh`, after a store update of the
+widget package, from the store package alone, over a newer installation,
+twice in a row, and out again with `./uninstall.sh`. Each route runs in a fresh
+rootless podman container on Fedora, Debian, Ubuntu and Arch. The widget itself
+runs in a hidden nested Plasma session, on the old engine, the new one and
+none. It installs nothing on the machine it runs on and shows no window, but
+it keeps its container images (several gigabytes:
+`localhost/ptw-update-routes-*` and the distribution images they are built
+from) and its compiler caches (the podman volumes
+`ptw-update-routes-ccache-*`) between runs; `podman rmi` and
+`podman volume rm` remove them. Its header lists the tools it needs.
+
 ## How this was built
 
 This widget was written with an AI coding agent — Claude Code — doing the
@@ -294,13 +339,12 @@ worth stating plainly, so here is what has actually been run.
 
 It has been built, installed and used on four distributions:
 
-* **Fedora 44** — Plasma 6.7.5 on Wayland, Qt 6.11.2, GCC 16.2. The development
-  machine, and the one with by far the most hours on it.
+* **Fedora 44** — Plasma 6.7.5 on Wayland, Qt 6.11.2, GCC 16.2.
 * **Debian** — Plasma 6.7.4 on Wayland, with the module landing on Debian's
   multiarch QML path rather than Fedora's `lib64`.
 * **Arch** — Plasma 6.6.5 on Wayland, Qt 6.11.1, GCC 16.1: an older Plasma and
   a newer compiler than this code was written against.
-* **Ubuntu** — with the Debian package names listed above.
+* **Ubuntu** — with the same apt command as Debian.
 
 On each of them the dependency line installs, the build is clean, the module
 lands on that distribution's own import path, and plasmashell loads it with the
@@ -312,6 +356,10 @@ Fedora is where the detail work was checked: sessions start and stop, input and
 clipboard go through the real event path, teardown leaves no stray shell
 processes, and the widget survives being moved, resized and reconfigured on a
 live desktop.
+
+For 1.1.0, `test/update-routes.sh` ran every update route from 1.0 on
+Fedora 45, Debian 13, Ubuntu 26.04 and Arch, and ran the widget on
+Plasma 6.8.2 with the 1.0 engine, the 1.1.0 engine and none.
 
 What has not been tried is X11, fractional or 1× scaling, multiple monitors,
 and most of the settings in combination with one another. If it misbehaves, the

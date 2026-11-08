@@ -7,11 +7,15 @@ The widget comes in two halves that are installed separately: the **engine**
 (the compiled QML module, installed system-wide) and the **widget package**
 (the QML plasmoid, installed per user or from *Get New Widgets*). Each entry
 says which halves changed. When the engine changed, updating only the widget
-package is not enough; the widget's settings page says so if it happens.
+package is not enough; the widget's settings pages say so if it happens.
 
 ## 1.1.0 — 2026-11-04
 
 Halves changed: **engine and widget package** — rebuild the engine.
+
+Updating: *Get New Widgets* and *Discover* update only the widget package.
+`git pull` and `./update.sh` in your copy of the project rebuild the engine
+as well; restart Plasma afterwards.
 
 ### Added
 
@@ -22,26 +26,53 @@ Halves changed: **engine and widget package** — rebuild the engine.
   ([#7](https://github.com/Cir0cuit/plasma-terminal-widget/issues/7))
 - `update.sh`, to run after `git pull` has downloaded a new version: it
   builds and installs that version over the old one, shows what changed and
-  offers to restart plasmashell.
-- The engine reports its version, so a widget package newer than the
-  installed engine says so in its settings instead of failing quietly.
+  offers to restart plasmashell. It checks both halves, so after *Get New
+  Widgets* has updated only the widget package, it says so, updates the
+  engine and still lists the changes.
+- The settings pages say when the engine is older than the widget package,
+  naming the settings on each page that wait for it to be rebuilt, or that it
+  is not installed. Before, *Appearance* and *Shell* stayed empty without an
+  engine.
 
 ### Changed
 
 - If your Konsole profile uses a style other than Regular and the widget
   follows that profile, the widget now draws text in that style too.
+- `install.sh` and `update.sh` stop without changing anything when the
+  installed widget package or engine is newer than the copy they run from.
+  Before, `install.sh` put the older widget package back over one from
+  *Get New Widgets*.
+- `install.sh`, `update.sh` and `uninstall.sh` stop at once when run as
+  root, for example with `sudo`, and ask for a password themselves for the
+  steps that need root. Run as root, `install.sh` installed the widget
+  package in root's home folder instead of yours, and left files in `build/`
+  that the next run could not overwrite.
+- The widget says "Terminal engine not installed" only when the engine is
+  missing, and a terminal opened after *Get New Widgets* has updated the
+  widget, before Plasma restarts, starts normally. Any other error that stops
+  the terminal from loading is shown as it is, with the advice to restart
+  Plasma if the widget was just updated.
 
 ### Fixed
 
 - `install.sh` builds again after a first attempt that failed, for example on
   a missing dependency. Before, `build/` had to be deleted by hand.
 - `install.sh` no longer fails where `$USER` is not set.
+- Where sudo is not installed, `install.sh` and `uninstall.sh` use `su`,
+  which asks for root's password. Before, they stopped with advice that did
+  not work.
+- An engine installed under a umask stricter than 022 can be read by Plasma,
+  which before said the engine was not installed. Updating also repairs an
+  engine installed that way.
 - *Appearance → Family* and *Size* show the font the widget actually uses.
   Before, with *Match my Konsole profile* on, they showed the first family in
   the list and 10 pt, and a monospace family that the list left out showed as
   the first family instead.
 - *Behavior → Terminal bell* works in every mode: system beep, notification
-  and flash. Before, the setting had no effect.
+  and flash. Before, the setting had no effect. *Notification* uses KDE's
+  notifications QML module, which a minimal Debian or Ubuntu install may lack
+  (`qml6-module-org-kde-notifications`); without it, that mode sends nothing
+  and the rest of the widget works as usual.
 - *Antialias glyphs* takes effect at once, can be switched back on, and
   applies only to the widget it was set for.
 - *Padding* takes effect at once instead of after the next resize.

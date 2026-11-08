@@ -1,4 +1,4 @@
-<!-- The description of the KDE Store entry, https://store.kde.org/p/2371024. The store shows it as plain text: every line break is kept, so each paragraph is one line, web addresses become links, and Markdown is not rendered. Paste everything below this comment. -->
+<!-- The description of the KDE Store entry, https://store.kde.org/p/2371024. The store shows it as plain text: every line break is kept, so each paragraph is one line, web addresses become links, and Markdown is not rendered, and "&&" inside an indented command is shown as "&amp;&amp;". Paste everything below this comment. -->
 
 A terminal emulator for the KDE Plasma 6 desktop, made as an ordinary Plasma widget. Put it on the desktop or in a panel, resize it, and give each terminal its own font, colour scheme and background. A terminal without a font or colour scheme of its own uses your default Konsole profile's.
 
@@ -46,7 +46,8 @@ UPDATING
 
 Updating keeps your widgets and their settings. In the folder you cloned, run:
 
-    git pull && ./update.sh
+    git pull
+    ./update.sh
 
 It rebuilds the engine, installs the new widget package, lists what changed and offers to restart Plasma.
 

@@ -42,6 +42,9 @@ KCM.SimpleKCM {
     readonly property string konsoleFontSummary: {
         const family = konsoleProfile.fontFamily !== undefined ? konsoleProfile.fontFamily : i18n("Monospace");
         const size = konsoleProfile.fontSize !== undefined ? konsoleProfile.fontSize : 10;
+        if (konsoleProfile.fontFamily !== undefined && !PT.TerminalInfo.hasFamily(family)) {
+            return i18n("%1 is not installed, using Monospace, %2 pt", family, size);
+        }
         const style = konsoleProfile.fontStyle;
         if (!engineOutdated && style !== undefined && style !== PT.TerminalInfo.regularFontStyle(family)) {
             return i18n("%1 %2, %3 pt", family, style, size);
@@ -52,7 +55,7 @@ KCM.SimpleKCM {
     // What the pickers show: the configured font, or the Konsole profile's
     // while the widget follows it.
     readonly property string effectiveFontFamily: {
-        if (cfg_fontFamily.length > 0) {
+        if (cfg_fontFamily.length > 0 && PT.TerminalInfo.hasFamily(cfg_fontFamily)) {
             return cfg_fontFamily;
         }
         if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
@@ -60,9 +63,8 @@ KCM.SimpleKCM {
         }
         return "Monospace";
     }
-    // Qt does not flag every monospace font as fixed-pitch (Noto Sans Mono's
-    // variable font, say), so list the font in use and the Konsole profile's
-    // even when they are missing.
+    // List the font in use and the Konsole profile's even when the monospace
+    // list leaves them out.
     readonly property var familyChoices: {
         const extra = [effectiveFontFamily];
         if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
@@ -85,7 +87,7 @@ KCM.SimpleKCM {
     }
     readonly property var effectiveFontStyleInfo: engineOutdated || effectiveFontStyle.length === 0 ? {} : PT.TerminalInfo.fontStyleInfo(effectiveFontFamily, effectiveFontStyle)
     readonly property string effectiveScheme: {
-        if (cfg_colorScheme.length > 0) {
+        if (cfg_colorScheme.length > 0 && schemes.indexOf(cfg_colorScheme) >= 0) {
             return cfg_colorScheme;
         }
         if (konsoleProfile.colorScheme !== undefined && schemes.indexOf(konsoleProfile.colorScheme) >= 0) {
@@ -103,7 +105,7 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             visible: page.engineOutdated
             type: Kirigami.MessageType.Warning
-            text: i18n("The terminal engine on this system is version %1, older than this widget, which needs %2. Font styles stay unavailable until the engine is rebuilt: in your copy of the project, run git pull, then ./update.sh. If you have just done that, restart Plasma.", Version.installedEngine(PT.TerminalInfo), Version.requiredEngine)
+            text: i18n("The terminal engine on this system is version %1, older than this widget, which needs %2. Font styles and the fixes made in the engine stay unavailable until it is rebuilt: in your copy of the project, run git pull, then ./update.sh. If you have just done that, restart Plasma.", Version.installedEngine(PT.TerminalInfo), Version.requiredEngine)
             actions: [
                 Kirigami.Action {
                     icon.name: "internet-services"

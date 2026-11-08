@@ -45,9 +45,10 @@ PlasmoidItem {
     toolTipSubText: Plasmoid.formFactor === PlasmaCore.Types.Planar ? "" : i18n("Click to open a terminal")
 
     // In a panel the terminal only becomes visible when the popup opens, so
-    // that is when it should take the keyboard.
+    // that is when it should take the keyboard. On the desktop each shortcut
+    // press flips `expanded`, so every change counts.
     onExpandedChanged: {
-        if (root.expanded && fullRepresentationItem && fullRepresentationItem.focusTerminal) {
+        if ((root.expanded || Plasmoid.formFactor === PlasmaCore.Types.Planar) && fullRepresentationItem && fullRepresentationItem.focusTerminal) {
             Qt.callLater(fullRepresentationItem.focusTerminal);
         }
     }

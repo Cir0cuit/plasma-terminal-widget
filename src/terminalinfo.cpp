@@ -9,6 +9,7 @@
 #include <QFont>
 #include <QFontDatabase>
 #include <QFontInfo>
+#include <QFontMetrics>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -85,14 +86,28 @@ QStringList TerminalInfo::monospaceFamilies() const
     QStringList families;
     const QStringList all = QFontDatabase::families();
     for (const QString &family : all) {
-        if (QFontDatabase::isPrivateFamily(family)) {
+        // Without Latin it is a symbol font fontconfig calls monospace, such as Cursor or Noto Color Emoji.
+        if (QFontDatabase::isPrivateFamily(family) || !QFontDatabase::writingSystems(family).contains(QFontDatabase::Latin)) {
             continue;
         }
-        if (QFontDatabase::isFixedPitch(family)) {
-            families << family;
+        if (!QFontDatabase::isFixedPitch(family)) {
+            // Fontconfig leaves some monospace fonts unflagged (Noto Sans Mono), so measure them.
+            const QFontMetrics fm{QFont(family)};
+            const int width = fm.horizontalAdvance(u'i');
+            if (width <= 0 || width != fm.horizontalAdvance(u'W') || width != fm.horizontalAdvance(u'm')) {
+                continue;
+            }
         }
+        families << family;
     }
     families.removeDuplicates();
+    // Drop legacy per-style names ("Noto Sans Mono Light"); the Style picker offers that style of the family.
+    const QStringList listed = families;
+    families.removeIf([&listed](const QString &family) {
+        return std::any_of(listed.begin(), listed.end(), [&family](const QString &base) {
+            return family.startsWith(base + u' ') && QFontDatabase::styles(base).contains(family.mid(base.size() + 1));
+        });
+    });
     families.sort(Qt::CaseInsensitive);
     return families;
 }
@@ -107,7 +122,12 @@ QStringList TerminalInfo::allFamilies() const
 
 bool TerminalInfo::hasFamily(const QString &family) const
 {
-    return QFontDatabase::families().contains(family, Qt::CaseInsensitive);
+    // A family installed from two foundries is listed as "Name [Foundry]".
+    const QString withFoundry = family + QStringLiteral(" [");
+    const QStringList all = QFontDatabase::families();
+    return std::any_of(all.begin(), all.end(), [&](const QString &f) {
+        return f.compare(family, Qt::CaseInsensitive) == 0 || f.startsWith(withFoundry, Qt::CaseInsensitive);
+    });
 }
 
 QStringList TerminalInfo::fontStyles(const QString &family) const

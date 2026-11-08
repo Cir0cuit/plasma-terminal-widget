@@ -5,6 +5,9 @@
 #include "Emulation.h"
 #include "Session.h"
 
+#include <QFileInfo>
+#include <QTimer>
+
 #include <csignal>
 
 TerminalSessionEx::TerminalSessionEx(QObject *parent)
@@ -115,13 +118,35 @@ void TerminalSessionEx::clearScrollback()
 {
     if (auto *session = konsoleSession()) {
         session->clearHistory();
+        // Let the views catch up, or the scrollbar keeps the old range.
+        QMetaObject::invokeMethod(session->emulation(), "bufferedUpdate");
     }
 }
 
 void TerminalSessionEx::clearAll()
 {
-    clearScrollback();
-    clearDisplay();
+    auto *session = konsoleSession();
+    if (!session) {
+        return;
+    }
+    // A reset turns off bracketed paste; the shell enabled it for its line
+    // editor and would not turn it on again until the next command.
+    const bool bracketedPaste = session->emulation()->programBracketedPasteMode();
+    resetTerminal(); // pushes the old screen into the history...
+    clearScrollback(); // ...so this comes after it
+    if (bracketedPaste) {
+        session->emulation()->receiveData("\x1b[?2004h", 8);
+    }
+
+    // Ctrl+L makes bash, zsh and fish redraw their prompt, but only while the
+    // shell itself waits for input: any other program would read it as typing.
+    static const QStringList redrawingShells{QStringLiteral("bash"), QStringLiteral("zsh"), QStringLiteral("fish")};
+    if (session->isRunning() && session->foregroundProcessId() == session->processId()
+        && redrawingShells.contains(QFileInfo(shellProgram()).fileName())) {
+        sendText(QStringLiteral("\x0c"));
+        // fish scrolls the old screen into the history to redraw; clear it again.
+        QTimer::singleShot(250, this, &TerminalSessionEx::clearScrollback);
+    }
 }
 
 void TerminalSessionEx::resetTerminal()

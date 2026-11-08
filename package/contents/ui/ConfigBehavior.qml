@@ -68,7 +68,7 @@ KCM.SimpleKCM {
 
         QQC2.CheckBox {
             Kirigami.FormData.label: i18n("Keyboard:")
-            text: i18n("Ctrl+Shift+C and Ctrl+Shift+V copy and paste")
+            text: i18n("Ctrl+Shift+C/V copy and paste, Ctrl+Shift+plus/minus/0 zoom")
             checked: page.cfg_builtInShortcuts
             onToggled: page.cfg_builtInShortcuts = checked
         }

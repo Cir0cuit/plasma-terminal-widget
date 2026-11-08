@@ -60,6 +60,14 @@ inline void initResource()
 
 using namespace Konsole;
 
+// (patched) a zero flash time means "do not blink", as in Qt's own text
+// controls; a 0 ms timer would keep the event loop busy.
+static void startBlinkTimer(QTimer *timer)
+{
+    if (const int half = QApplication::cursorFlashTime() / 2; half > 0)
+        timer->start(half);
+}
+
 constexpr auto REPCHAR =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefgjijklmnopqrstuvwxyz"
@@ -248,6 +256,7 @@ void TerminalDisplay::setBoldIntense(bool value)
 {
     if (_boldIntense != value) {
         _boldIntense = value;
+        update(); // (patched) text already on screen keeps its old weight otherwise
         Q_EMIT boldIntenseChanged();
     }
 }
@@ -690,7 +699,9 @@ void TerminalDisplay::drawCursor(QPainter &painter,
 {
     QRect cursorRect = rect;
 
-    cursorRect.setHeight(qRound(_fontHeight) - ((m_full_cursor_height) ? 0 : _lineSpacing - 1));
+    // (patched) glyphs sit below the line spacing (see drawCharacters); the old height spilled 1 px into the next row
+    if (!m_full_cursor_height)
+        cursorRect.setTop(rect.top() + _lineSpacing);
 
     if (!_cursorBlinking) {
         if (_cursorColor.isValid())
@@ -1158,8 +1169,9 @@ void TerminalDisplay::setBlinkingCursor(bool blink)
 
     _hasBlinkingCursor = blink;
 
-    if (blink && !_blinkCursorTimer->isActive())
-        _blinkCursorTimer->start(QApplication::cursorFlashTime() / 2);
+    // (patched) only the focused view blinks; focusInEvent starts the timer
+    if (blink && hasActiveFocus() && !_blinkCursorTimer->isActive())
+        startBlinkTimer(_blinkCursorTimer);
 
     if (!blink && _blinkCursorTimer->isActive()) {
         _blinkCursorTimer->stop();
@@ -1202,7 +1214,8 @@ void TerminalDisplay::focusInEvent(QFocusEvent *)
 {
     Q_EMIT termGetFocus();
     if (_hasBlinkingCursor) {
-        _blinkCursorTimer->start();
+        // (patched) give the interval: a timer never started has 0 ms and would spin
+        startBlinkTimer(_blinkCursorTimer);
     }
     updateCursor();
 
@@ -1398,9 +1411,12 @@ void TerminalDisplay::drawContents(QPainter &paint, const QRect &rect)
     int tLy = tL.y();
 
     int lux = qMin(_usedColumns - 1, qMax(0, qRound((rect.left() - tLx - _leftMargin) / _fontWidth)));
-    int luy = qMin(_usedLines - 1, qMax(0, qRound((rect.top() - tLy - _topMargin) / _fontHeight)));
+    // (patched) rows are laid out every qRound(_fontHeight) pixels, so map back
+    // with the same height; the unrounded one picked the next row further down.
+    const int rowHeight = qMax(1, qRound(_fontHeight));
+    int luy = qMin(_usedLines - 1, qMax(0, (rect.top() - tLy - _topMargin) / rowHeight));
     int rlx = qMin(_usedColumns - 1, qMax(0, qRound((rect.right() - tLx - _leftMargin) / _fontWidth)));
-    int rly = qMin(_usedLines - 1, qMax(0, qRound((rect.bottom() - tLy - _topMargin) / _fontHeight)));
+    int rly = qMin(_usedLines - 1, qMax(0, (rect.bottom() - tLy - _topMargin) / rowHeight));
 
     if (_image.empty()) {
         return;
@@ -1541,7 +1557,8 @@ QRect TerminalDisplay::imageToWidget(const QRect &imageArea) const
 void TerminalDisplay::updateCursor()
 {
     QRect cursorRect = imageToWidget(QRect(cursorPosition(), QSize(1, 1)));
-    update(cursorRect);
+    // (patched) repaint the whole row: cells sit at fractional x, imageToWidget() rounds the width
+    update(QRect(0, cursorRect.top(), contentsRect().width(), cursorRect.height()));
 }
 
 void TerminalDisplay::blinkCursorEvent()
@@ -2526,7 +2543,7 @@ void TerminalDisplay::keyPressEvent(QKeyEvent *event)
                  // know where the current selection is.
 
     if (_hasBlinkingCursor) {
-        _blinkCursorTimer->start(QApplication::cursorFlashTime() / 2);
+        startBlinkTimer(_blinkCursorTimer);
         if (_cursorBlinking)
             blinkCursorEvent();
         else
@@ -2740,7 +2757,7 @@ void TerminalDisplay::calcGeometry()
 
     if (!_isFixedSize) {
         // ensure that display is always at least one column wide
-        _columns = qMax(1, qRound(_contentWidth / _fontWidth));
+        _columns = qMax(1, int(_contentWidth / _fontWidth)); // (patched) truncate: a rounded-up last column was clipped
         _usedColumns = qMin(_usedColumns, _columns);
 
         // ensure that display is always at least one line high
@@ -3101,6 +3118,7 @@ void TerminalDisplay::setFullCursorHeight(bool val)
 {
     if (m_full_cursor_height != val) {
         m_full_cursor_height = val;
+        updateCursor(); // (patched) draw the new height now, not at the next focus change
         Q_EMIT fullCursorHeightChanged();
     }
 }

@@ -29,7 +29,7 @@ Item {
     readonly property var availableSchemes: PT.TerminalInfo.colorSchemes()
 
     readonly property string fontFamily: {
-        if (cfg.fontFamily.length > 0) {
+        if (cfg.fontFamily.length > 0 && PT.TerminalInfo.hasFamily(cfg.fontFamily)) {
             return cfg.fontFamily;
         }
         if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
@@ -96,6 +96,7 @@ Item {
     // start() is synchronous: a shell that cannot be started never emits
     // started() or finished(), so the result is checked right after it.
     property bool startFailed: false
+    property string startError
     // Set once the user asks for a shell, so a recreated terminal starts even
     // with "Start on load" off.
     property bool startRequested: false
@@ -371,18 +372,28 @@ Item {
                 }
             }
 
+            // The message has the Plasma theme's text colour, so it needs that theme's background.
+            Rectangle {
+                anchors.fill: placeholder
+                anchors.margins: -Kirigami.Units.largeSpacing
+                radius: Kirigami.Units.cornerRadius
+                color: Kirigami.Theme.backgroundColor
+                visible: placeholder.visible
+            }
+
             // Shown when the shell exited and the widget is configured to wait
-            // for the user, and when auto-start is off.
+            // for the user, and before this terminal's shell has been started.
             Loader {
+                id: placeholder
                 anchors.centerIn: parent
                 width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 20)
-                active: pane.sessionEnded || pane.startFailed || (!cfg.autoStart && pane.session !== null && !pane.session.running && !pane.sessionEnded)
+                active: pane.sessionEnded || pane.startFailed || (pane.session !== null && pane.session.startedAt === 0)
                 visible: active
                 sourceComponent: PlasmaExtras.PlaceholderMessage {
                     iconName: "utilities-terminal"
                     text: {
                         if (pane.startFailed) {
-                            return i18n("Could not start %1 in %2", pane.session.shellProgram, pane.session.initialWorkingDirectory);
+                            return pane.startError;
                         }
                         return pane.sessionEnded ? i18n("The shell exited") : i18n("Terminal is not running");
                     }
@@ -561,6 +572,10 @@ Item {
                     if (cfg.autoStart || pane.startRequested) {
                         shellSession.start();
                         pane.startFailed = !shellSession.running;
+                        // The settings are bound live; the message must name the ones that failed.
+                        if (pane.startFailed) {
+                            pane.startError = i18n("Could not start %1 in %2", shellSession.shellProgram, shellSession.initialWorkingDirectory);
+                        }
                         if (!pane.startFailed && cfg.startupCommand.length > 0) {
                             startupTimer.start();
                         }
@@ -633,6 +648,14 @@ Item {
 
     // ------------------------------------------------------------------
     // actions offered in Plasma's own widget menu
+
+    // That menu leaves keyboard focus on the desktop when it closes.
+    Connections {
+        target: Plasmoid
+        function onContextualActionsAboutToShow() {
+            Qt.callLater(pane.focusTerminal);
+        }
+    }
 
     Plasmoid.contextualActions: [
         PlasmaCore.Action {

@@ -29,7 +29,10 @@ public:
 
     QString engineVersion() const;
 
-    /** Font families with fixed character width, sorted, deduplicated. */
+    /**
+     * Font families with fixed character width that cover Latin text, sorted,
+     * deduplicated, without the legacy per-style names ("JetBrains Mono Light").
+     */
     Q_INVOKABLE QStringList monospaceFamilies() const;
     /** Every installed font family. */
     Q_INVOKABLE QStringList allFamilies() const;

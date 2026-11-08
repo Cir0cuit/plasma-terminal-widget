@@ -26,6 +26,16 @@ KCM.SimpleKCM {
         anchors.left: parent.left
         anchors.right: parent.right
 
+        QQC2.Label {
+            text: i18n("Program, arguments, working directory, environment and the startup command take effect after Restart Session in the right-click menu.")
+            opacity: 0.7
+            font: Kirigami.Theme.smallFont
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+            // Uncapped, its one-line width would push the form into narrow mode.
+            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+        }
+
         QQC2.TextField {
             Kirigami.FormData.label: i18n("Program:")
             text: page.cfg_shellProgram
@@ -115,7 +125,8 @@ KCM.SimpleKCM {
 
         QQC2.ScrollView {
             Layout.minimumWidth: Kirigami.Units.gridUnit * 20
-            Layout.minimumHeight: Kirigami.Units.gridUnit * 7
+            // FormLayout passes only the width on to its items, so the height has to be implicit.
+            implicitHeight: Kirigami.Units.gridUnit * 7
 
             QQC2.TextArea {
                 text: page.cfg_environmentVars

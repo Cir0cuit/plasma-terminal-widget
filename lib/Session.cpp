@@ -235,9 +235,8 @@ void Session::run()
     // if 'exec' is not specified, fall back to default shell.  if that
     // is not set then fall back to /bin/sh
 
-    // here we expect full path. If there is no fullpath let's expect it's
-    // a custom shell (eg. python, etc.) available in the PATH.
-    if (exec.startsWith(QLatin1Char('/')) || exec.isEmpty()) {
+    // (patched) only an empty program falls back: a missing path must fail to start.
+    if (exec.isEmpty()) {
         const QString defaultShell{QLatin1String("/bin/sh")};
 
         QFile excheck(exec);

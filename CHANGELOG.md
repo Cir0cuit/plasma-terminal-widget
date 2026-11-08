@@ -62,6 +62,39 @@ Halves changed: **engine and widget package** — rebuild the engine.
   is light when the colour scheme is light.
 - The bold option is labelled for what it does: *Draw bold text in a bold
   font*.
+- The blinking cursor blinks wherever it is on the line, and only in the
+  widget that has focus. It used to stop blinking from about the 40th column
+  and leave a thin bar behind.
+- *Draw bold text in a bold font* and *Cursor covers the full line height*
+  change what is already on screen as soon as they are applied, and the
+  normal cursor no longer reaches into the line below.
+- With little or no padding, the rightmost column is no longer cut off.
+- *Clear Scrollback and Reset* empties the scrollback and resets the
+  terminal, and a bash, zsh or fish prompt waiting for input is redrawn at the
+  top.
+- With some fonts, such as Noto Sans Mono and DejaVu Sans Mono at 10 pt, typing
+  on the lower rows of a tall terminal no longer blanks the line.
+- *Shell → Program* set to a path that does not exist shows "Could not
+  start", naming the program and folder that failed, instead of quietly
+  starting another shell.
+- Turning on *Start on load* while "Terminal is not running" is shown no
+  longer leaves a terminal with no shell behind it.
+- The "Terminal is not running", "The shell exited" and "Could not start"
+  messages are readable on every colour scheme.
+- On the desktop, the widget's global shortcut focuses the terminal on every
+  press, not every second one, and typing reaches the terminal again after
+  Plasma's menu for the widget closes.
+- A font family that is no longer installed falls back to a monospace font
+  instead of a proportional one, and the settings show the font and colour
+  scheme actually in use.
+- *Appearance → Family* lists Noto Sans Mono and other monospace fonts that
+  fontconfig does not mark as monospace, and no longer lists symbol fonts or
+  duplicate per-weight names such as "JetBrains Mono Light".
+- When the Konsole profile's font is not installed, *Match my Konsole
+  profile* says so.
+- The keyboard option names the zoom keys it also controls, the Environment
+  box shows several lines, and the Shell page says which changes take effect
+  after *Restart Session*.
 
 ### Updating from 1.0
 
@@ -76,8 +109,9 @@ git pull
 
 If *Get New Widgets* has already updated the widget to 1.1, run the same
 commands in the folder you built the engine from. Until you do, the widget
-keeps working on the 1.0 engine without the font style setting, and its
-*Appearance* settings page says the engine needs rebuilding.
+keeps working on the 1.0 engine, but without the font style setting and the
+fixes made in the engine, and its *Appearance* settings page says the engine
+needs rebuilding.
 
 ## 1.0.0
 

@@ -55,7 +55,7 @@ public Q_SLOTS:
     void clearDisplay();
     /** Drop the scrollback buffer. */
     void clearScrollback();
-    /** Clear both the screen and the scrollback. */
+    /** Reset the terminal, drop the scrollback and let the shell redraw its prompt. */
     void clearAll();
     /** Full terminal reset, like the reset(1) command. */
     void resetTerminal();

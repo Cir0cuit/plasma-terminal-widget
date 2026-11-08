@@ -184,8 +184,10 @@ and marked `(patched)` at each site:
 2. `Session.cpp` — the `COLORFGBG` hint is appended to a copy of the
    environment at launch, so repeated starts do not accumulate copies of it,
    and says dark or light according to the view's actual background colour.
-   The session's bell is connected to the view, which nothing else did, and
-   a shell killed by a signal reports that it finished.
+   The session's bell is connected to the view, which nothing else did, a
+   shell killed by a signal reports that it finished, and only an empty
+   program falls back to `$SHELL` or `/bin/sh`, so a missing path fails to
+   start instead of running another shell.
 3. `TerminalSession.h` — added a `konsoleSession()` accessor, so scrollback and
    emulation resets can be driven from QML.
 4. `BlockArray.cpp` — the four block offsets passed to `fseek()` are computed
@@ -197,7 +199,16 @@ and marked `(patched)` at each site:
    for italic and underlined text, and raises bold text to Bold only from a
    lighter base, since Qt 6 already counts SemiBold as bold. The antialiasing
    switch belongs to each view instead of being shared by all of them, takes
-   effect at once, and can be turned back on.
+   effect at once, and can be turned back on. The cursor is repainted across
+   its whole row, because cells sit at fractional positions; only the focused
+   view blinks, and the blink timer always gets its interval. Changing the
+   bold or full-height cursor setting repaints at once, the normal cursor
+   covers the glyph area below the line spacing instead of reaching into the
+   next row, and the column count is rounded down so a partial last column
+   is never clipped. `drawContents()` maps a repainted area back to rows with
+   the same rounded line height the layout uses; the unrounded height picked
+   a row further down, which blanked lines on the lower rows. A zero cursor
+   flash time means no blinking instead of a 0 ms timer.
 
 ## Settings
 

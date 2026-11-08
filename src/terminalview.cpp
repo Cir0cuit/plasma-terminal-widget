@@ -126,6 +126,7 @@ void TerminalView::setPadding(int padding)
         return;
     }
     setMargin(padding);
+    setVTFont(getVTFont()); // recompute the character grid now, as setLineSpacing() does
     Q_EMIT paddingChanged();
 }
 
@@ -274,6 +275,16 @@ void TerminalView::sendKey(int key, int modifiers, const QString &text)
     simulateKeyPress(key, modifiers, true, 0, text);
 }
 
+void TerminalView::inputMethodEvent(QInputMethodEvent *event)
+{
+    // Read-only covers text from input methods too, not only key presses.
+    if (m_readOnly) {
+        event->accept();
+        return;
+    }
+    TerminalDisplay::inputMethodEvent(event);
+}
+
 void TerminalView::keyPressEvent(QKeyEvent *event)
 {
     if (m_readOnly) {
@@ -363,9 +374,12 @@ void TerminalView::mouseDoubleClickEvent(QMouseEvent *event)
 void TerminalView::wheelEvent(QWheelEvent *event)
 {
     if (m_wheelZoom && event->modifiers().testFlag(Qt::ControlModifier)) {
-        const int dy = event->angleDelta().y();
-        if (dy != 0) {
-            Q_EMIT zoomRequested(dy > 0 ? 1 : -1);
+        // One step per wheel notch (120), however finely the device slices it.
+        m_wheelZoomDelta += event->angleDelta().y();
+        while (qAbs(m_wheelZoomDelta) >= 120) {
+            const int step = m_wheelZoomDelta > 0 ? 1 : -1;
+            m_wheelZoomDelta -= step * 120;
+            Q_EMIT zoomRequested(step);
         }
         event->accept();
         return;

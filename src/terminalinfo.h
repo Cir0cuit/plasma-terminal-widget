@@ -38,7 +38,8 @@ public:
 
     /**
      * The styles @p family is installed in ("Light", "Regular", "Medium",
-     * "Bold Italic", ...), upright before italic and lightest first.
+     * "Bold Italic", ...), upright before italic and lightest first. Styles
+     * the terminal cannot draw, such as condensed widths, are left out.
      */
     Q_INVOKABLE QStringList fontStyles(const QString &family) const;
     /**

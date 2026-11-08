@@ -60,6 +60,16 @@ KCM.SimpleKCM {
         }
         return "Monospace";
     }
+    // Qt does not flag every monospace font as fixed-pitch (Noto Sans Mono's
+    // variable font, say), so list the font in use and the Konsole profile's
+    // even when they are missing.
+    readonly property var familyChoices: {
+        const extra = [effectiveFontFamily];
+        if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
+            extra.push(konsoleProfile.fontFamily);
+        }
+        return extra.filter((f, i) => extra.indexOf(f) === i && fontFamilies.indexOf(f) < 0).concat(fontFamilies);
+    }
     readonly property var fontStyles: engineOutdated ? [] : PT.TerminalInfo.fontStyles(effectiveFontFamily)
     readonly property string effectiveFontStyle: {
         if (engineOutdated) {
@@ -93,7 +103,7 @@ KCM.SimpleKCM {
             Layout.fillWidth: true
             visible: page.engineOutdated
             type: Kirigami.MessageType.Warning
-            text: i18n("The terminal engine on this system is version %1, older than this widget, which needs %2. Font styles stay unavailable until the engine is rebuilt: run ./update.sh in your copy of the project, then restart Plasma.", Version.installedEngine(PT.TerminalInfo), Version.requiredEngine)
+            text: i18n("The terminal engine on this system is version %1, older than this widget, which needs %2. Font styles stay unavailable until the engine is rebuilt: in your copy of the project, run git pull, then ./update.sh. If you have just done that, restart Plasma.", Version.installedEngine(PT.TerminalInfo), Version.requiredEngine)
             actions: [
                 Kirigami.Action {
                     icon.name: "internet-services"
@@ -129,10 +139,10 @@ KCM.SimpleKCM {
                 id: fontCombo
                 Kirigami.FormData.label: i18n("Family:")
                 enabled: !page.matchKonsoleFont
-                model: page.fontFamilies
-                currentIndex: Math.max(0, page.fontFamilies.indexOf(page.effectiveFontFamily))
+                model: page.familyChoices
+                currentIndex: Math.max(0, page.familyChoices.indexOf(page.effectiveFontFamily))
                 onActivated: {
-                    const family = page.fontFamilies[currentIndex];
+                    const family = page.familyChoices[currentIndex];
                     // Keep the style when the new family has one of that name
                     // (most have Regular, Bold, Italic); otherwise fall back to
                     // the new family's regular face.
@@ -158,7 +168,7 @@ KCM.SimpleKCM {
                 enabled: !page.matchKonsoleFont
                 from: 4
                 to: 72
-                value: page.cfg_fontSize > 0 ? page.cfg_fontSize : 10
+                value: page.cfg_fontSize > 0 ? page.cfg_fontSize : (page.konsoleProfile.fontSize !== undefined ? page.konsoleProfile.fontSize : 10)
                 onValueModified: page.cfg_fontSize = value
                 textFromValue: (value, locale) => i18np("%1 pt", "%1 pt", value)
                 valueFromText: text => parseInt(text)
@@ -280,7 +290,7 @@ KCM.SimpleKCM {
 
             QQC2.CheckBox {
                 Kirigami.FormData.label: i18n("Text:")
-                text: i18n("Draw bold text in intense colours")
+                text: i18n("Draw bold text in a bold font")
                 checked: page.cfg_boldIntense
                 onToggled: page.cfg_boldIntense = checked
             }

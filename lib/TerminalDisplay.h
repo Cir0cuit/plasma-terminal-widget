@@ -415,14 +415,11 @@ public:
      * Specified whether anti-aliasing of text in the terminal display
      * is enabled or not.  Defaults to enabled.
      */
-    static void setAntialias(bool antialias)
-    {
-        _antialiasText = antialias;
-    }
+    void setAntialias(bool antialias); // (patched) per view, applied at once
     /**
      * Returns true if anti-aliasing of text in the terminal is enabled.
      */
-    static bool antialias()
+    bool antialias() const
     {
         return _antialiasText;
     }
@@ -968,7 +965,7 @@ private:
     };
     InputMethodData _inputMethodData;
 
-    static bool _antialiasText; // do we antialias or not
+    bool _antialiasText = true; // (patched) per view; was static, shared by all widgets
 
     // the delay in milliseconds between redrawing blinking text
     static const int TEXT_BLINK_DELAY = 500;

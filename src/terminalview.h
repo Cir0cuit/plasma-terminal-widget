@@ -128,6 +128,7 @@ private:
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
+    void inputMethodEvent(QInputMethodEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
@@ -144,5 +145,6 @@ private:
     bool m_focusOnClick = true;
     int m_cursorShape = 0;
     int m_bellMode = 3;
+    int m_wheelZoomDelta = 0;
     QString m_wordCharacters = QStringLiteral(":@-./_~");
 };

@@ -32,22 +32,30 @@ if [ ${#missing[@]} -gt 0 ]; then
     exit 1
 fi
 
-if [ ! -d build ]; then
-    cmake -B build -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo
-fi
+# Configure every time: it is quick on an existing build/, and a first attempt
+# that failed (a missing dependency) leaves a build/ with nothing to build.
+# -Wno-dev hides warnings meant for the project's developers, not its users.
+cmake -Wno-dev -B build -S . -DCMAKE_BUILD_TYPE=RelWithDebInfo
 cmake --build build -j"$(nproc)"
 
 echo "Installing the QML module (needs root: it must land on Qt's import path)..."
 as_root cmake --install build
 
-echo "Installing the applet for $USER..."
+echo "Installing the applet for $(id -un)..."
 if kpackagetool6 --type Plasma/Applet --list 2>/dev/null | grep -q '^io\.github\.cir0cuit\.plasmaterminal$'; then
     kpackagetool6 --type Plasma/Applet --upgrade package
+    fresh=
 else
     kpackagetool6 --type Plasma/Applet --install package
+    fresh=1
 fi
 
 echo
-echo "Done. Restart plasmashell to pick up QML changes:"
-echo "    systemctl --user restart plasma-plasmashell.service"
-echo "Then add it from the desktop context menu: Add Widgets... -> Terminal"
+if [ -n "$fresh" ]; then
+    echo "Done. Restart plasmashell so it finds the new widget:"
+    echo "    systemctl --user restart plasma-plasmashell.service"
+    echo "Then add it from the desktop context menu: Add Widgets... -> Terminal"
+elif [ -z "${PT_UPDATING:-}" ]; then
+    echo "Done. Restart plasmashell to load the new version:"
+    echo "    systemctl --user restart plasma-plasmashell.service"
+fi

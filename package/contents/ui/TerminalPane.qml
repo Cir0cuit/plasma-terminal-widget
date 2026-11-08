@@ -12,6 +12,7 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.kirigami as Kirigami
+import org.kde.notification
 
 import io.github.cir0cuit.plasmaterminal.core as PT
 
@@ -92,6 +93,12 @@ Item {
 
     property string titleText: i18n("Terminal")
     property bool sessionEnded: false
+    // start() is synchronous: a shell that cannot be started never emits
+    // started() or finished(), so the result is checked right after it.
+    property bool startFailed: false
+    // Set once the user asks for a shell, so a recreated terminal starts even
+    // with "Start on load" off.
+    property bool startRequested: false
 
     // The size hints live on the Loader in main.qml: that is the item the
     // containment lays out, and this one only fills it.
@@ -99,12 +106,15 @@ Item {
     // ------------------------------------------------------------------
     // helpers
 
+    // Shell-style words: quotes may appear anywhere in a word, a backslash
+    // escapes outside single quotes, and an unmatched quote is kept as is.
     function parseArguments(text) {
         const out = [];
-        const re = /'([^']*)'|"([^"]*)"|(\S+)/g;
+        const re = /(?:'[^']*'|"(?:\\.|[^"\\])*"|\\.|\S)+/g;
+        const part = /'([^']*)'|"((?:\\.|[^"\\])*)"|\\(.)/g;
         let m;
         while ((m = re.exec(text)) !== null) {
-            out.push(m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3]));
+            out.push(m[0].replace(part, (s, sq, dq, esc) => sq !== undefined ? sq : dq !== undefined ? dq.replace(/\\([\\"$`])/g, "$1") : esc));
         }
         return out;
     }
@@ -143,7 +153,9 @@ Item {
     }
 
     function restartSession() {
+        pane.startRequested = true;
         pane.sessionEnded = false;
+        pane.startFailed = false;
         terminalLoader.active = false;
         terminalLoader.active = true;
     }
@@ -212,6 +224,21 @@ Item {
         interval: 60
         repeat: false
         onTriggered: pane.restartSession()
+    }
+
+    // "Terminal bell: Notification". Plasma's own event, so nothing extra has
+    // to be installed for it; one object per bell, gone once it closes.
+    Component {
+        id: bellNotification
+
+        Notification {
+            componentName: "plasma_workspace"
+            eventId: "notification"
+            iconName: "utilities-terminal"
+            title: pane.titleText
+            text: i18n("The terminal rang its bell")
+            onClosed: destroy()
+        }
     }
 
     // Auto-hide state for the scrollbar: it appears while the pointer is over
@@ -349,22 +376,20 @@ Item {
             Loader {
                 anchors.centerIn: parent
                 width: Math.min(parent.width - Kirigami.Units.gridUnit * 2, Kirigami.Units.gridUnit * 20)
-                active: pane.sessionEnded || (!cfg.autoStart && pane.session !== null && !pane.session.running && !pane.sessionEnded)
+                active: pane.sessionEnded || pane.startFailed || (!cfg.autoStart && pane.session !== null && !pane.session.running && !pane.sessionEnded)
                 visible: active
                 sourceComponent: PlasmaExtras.PlaceholderMessage {
                     iconName: "utilities-terminal"
-                    text: pane.sessionEnded ? i18n("The shell exited") : i18n("Terminal is not running")
+                    text: {
+                        if (pane.startFailed) {
+                            return i18n("Could not start %1 in %2", pane.session.shellProgram, pane.session.initialWorkingDirectory);
+                        }
+                        return pane.sessionEnded ? i18n("The shell exited") : i18n("Terminal is not running");
+                    }
                     helpfulAction: Kirigami.Action {
                         icon.name: "system-run"
                         text: pane.sessionEnded ? i18n("Start a new session") : i18n("Start")
-                        onTriggered: {
-                            if (pane.sessionEnded) {
-                                pane.restartSession();
-                            } else if (pane.session) {
-                                pane.session.start();
-                                pane.focusTerminal();
-                            }
-                        }
+                        onTriggered: pane.restartSession()
                     }
                 }
             }
@@ -504,14 +529,20 @@ Item {
                     scrollbackLines: cfg.unlimitedScrollback ? -1 : cfg.scrollbackLines
                     flowControl: cfg.flowControl
 
+                    property double startedAt: 0
+                    onStarted: startedAt = Date.now()
                     onFinished: {
-                        if (cfg.exitAction === 0) {
+                        // A program that exits at once would respawn forever;
+                        // offer the restart button for it instead.
+                        if (cfg.exitAction === 0 && Date.now() - startedAt > 3000) {
                             restartTimer.restart();
-                        } else if (cfg.exitAction === 1) {
+                        } else if (cfg.exitAction !== 2) {
                             pane.sessionEnded = true;
                         }
                     }
                 }
+
+                onNotifyBell: bellNotification.createObject(pane).sendEvent()
 
                 onZoomRequested: delta => pane.zoomDelta += delta
                 onZoomResetRequested: pane.zoomDelta = 0
@@ -527,9 +558,10 @@ Item {
                 }
 
                 Component.onCompleted: {
-                    if (cfg.autoStart) {
+                    if (cfg.autoStart || pane.startRequested) {
                         shellSession.start();
-                        if (cfg.startupCommand.length > 0) {
+                        pane.startFailed = !shellSession.running;
+                        if (!pane.startFailed && cfg.startupCommand.length > 0) {
                             startupTimer.start();
                         }
                     }

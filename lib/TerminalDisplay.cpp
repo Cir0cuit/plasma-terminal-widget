@@ -67,8 +67,6 @@ constexpr auto REPCHAR =
 
 // scroll increment used when dragging selection at top/bottom of window.
 
-// static
-bool TerminalDisplay::_antialiasText = true;
 
 // we use this to force QPainter to display text in LTR mode
 // more information can be found in: http://unicode.org/reports/tr9/
@@ -215,6 +213,14 @@ void TerminalDisplay::fontChange(const QFont &)
 //  _drawTextTestFlag = false;
 //}
 
+void TerminalDisplay::setAntialias(bool antialias)
+{
+    if (_antialiasText != antialias) {
+        _antialiasText = antialias;
+        setVTFont(m_font);
+    }
+}
+
 void TerminalDisplay::setVTFont(const QFont &f)
 {
     QFont font = f;
@@ -225,8 +231,8 @@ void TerminalDisplay::setVTFont(const QFont &f)
 
     // hint that text should be drawn without anti-aliasing.
     // depending on the user's font configuration, this may not be respected
-    if (!_antialiasText)
-        font.setStyleStrategy(QFont::NoAntialias);
+    // (patched) set both ways, so antialiasing can be switched back on.
+    font.setStyleStrategy(_antialiasText ? QFont::PreferDefault : QFont::NoAntialias);
 
     // experimental optimization.  Konsole assumes that the terminal is using a
     // mono-spaced font, in which case kerning information should have an effect.
@@ -731,7 +737,9 @@ void TerminalDisplay::drawCharacters(QPainter &painter, const QRect &rect, const
         return;
 
     // setup bold and underline
-    bool useBold = ((style->rendition & RE_BOLD) && _boldIntense) || font().bold();
+    // (patched) bold raises only a base lighter than Bold: Qt 6 counts
+    // SemiBold as bold(), which used to leave bold text looking plain.
+    const bool useBold = (style->rendition & RE_BOLD) && _boldIntense && font().weight() < QFont::Bold;
     const bool useUnderline = style->rendition & RE_UNDERLINE || font().underline();
     const bool useItalic = style->rendition & RE_ITALIC || font().italic();
     const bool useStrikeOut = style->rendition & RE_STRIKEOUT || font().strikeOut();
@@ -740,9 +748,12 @@ void TerminalDisplay::drawCharacters(QPainter &painter, const QRect &rect, const
     painter.setFont(font());
 
     QFont font = painter.font();
-    if (font.bold() != useBold || font.underline() != useUnderline || font.italic() != useItalic || font.strikeOut() != useStrikeOut
+    if (useBold || font.underline() != useUnderline || font.italic() != useItalic || font.strikeOut() != useStrikeOut
         || font.overline() != useOverline) {
-        font.setBold(useBold);
+        // (patched) never setBold(false): it resets a Light or Medium base
+        // weight to Regular, so italic and underlined text lost the style.
+        if (useBold)
+            font.setBold(true);
         font.setUnderline(useUnderline);
         font.setItalic(useItalic);
         font.setStrikeOut(useStrikeOut);

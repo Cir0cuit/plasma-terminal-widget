@@ -1,11 +1,9 @@
 # SPDX-FileCopyrightText: 2023 Jonah Brüchert <jbb@kaidan.im>
 # SPDX-License-Identifier: GPL-2.0-or-later
 #
-# Vendored terminal core from qmlkonsole 26.08.0. Two local patches, both
-# marked with "(patched)" in the sources:
-#   * TerminalSession.cpp no longer calls setenv() on the *host* process.
-#   * Session::run() no longer appends COLORFGBG to the stored environment
-#     on every start.
+# Vendored terminal core from qmlkonsole 26.08.0. Local patches are marked
+# "(patched)" in the sources and listed in README.md under "Vendored code and
+# local modifications".
 
 add_library(PlasmaTerminalCore STATIC
     BlockArray.cpp

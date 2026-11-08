@@ -29,8 +29,8 @@ sudo apt install cmake build-essential qt6-base-dev qt6-declarative-dev \
     qt6-5compat-dev libkf6coreaddons-dev libkf6pty-dev
 ```
 
-**Ubuntu** — the same package names as Debian, on a release new enough to ship
-Plasma 6 (24.04 or later; Kubuntu or KDE neon).
+**Ubuntu** — the same command as Debian, on Ubuntu 26.04 or later. Ubuntu 24.04
+ships Qt 6.4 and no KDE Frameworks 6 build of KPty.
 
 **Arch**
 
@@ -62,50 +62,62 @@ Restart plasmashell afterwards so it picks up the new QML module:
 systemctl --user restart plasma-plasmashell.service
 ```
 
+If that command fails because Plasma does not run as a systemd user service on
+your system, log out and back in instead.
+
 Then add it from the desktop context menu: *Add Widgets… → Terminal*. To remove
 everything again, run `./uninstall.sh` — take the widgets off the desktop
 first, or the shell will show an empty placeholder until it is restarted.
 
 ### Updating
 
-From the clone you installed with:
+Updating keeps your widgets and all their settings. In the
+`plasma-terminal-widget` folder that `git clone` created, run:
 
 ```bash
-cd plasma-terminal-widget
 ./update.sh
 ```
 
-`update.sh` pulls the new version, rebuilds, reinstalls both halves the same
-way `install.sh` does, and then offers to restart plasmashell — Plasma keeps
-the old version loaded until it restarts. Restarting ends the shells running
-inside terminal widgets, so it asks first; `--restart` and `--no-restart`
-answer in advance. It refuses to pull over local changes rather than merge
-them into what it installs.
+It fetches the new version with `git pull`, rebuilds it and installs both
+halves the way `install.sh` does, so it asks for your password once. Then it
+shows what changed and offers to restart plasmashell: Plasma keeps running the
+old version until it restarts, and restarting ends the shells running in
+terminal widgets, so it asks first. `./update.sh --restart` and
+`./update.sh --no-restart` answer in advance.
 
-Doing the same by hand:
+If it stops instead:
+
+* **There is no `update.sh`** — either the terminal is not in that folder, or
+  your copy is older than 1.1, which added the script. In the folder, run
+  `git pull` once, then `./update.sh`.
+* **`this checkout has local changes`** — files in the folder were edited. Set
+  the edits aside with `git stash`, then run `./update.sh` again.
+* **`git could not update this checkout`** — git's own message just above says
+  why: no network, a release tag checked out (run `git switch main`), or
+  commits of your own (run `git pull --rebase`). Then run `./update.sh` again.
+* **`this copy was not cloned with git`** — see *Without git* below.
+
+**Without git.** On GitHub, choose *Code → Download ZIP*, unpack it and run
+`./install.sh` in the unpacked folder. It upgrades the installed version in
+place; then restart plasmashell.
+
+**Widget from Get New Widgets.** *Get New Widgets* updates only the widget
+package. The engine changes only when it is rebuilt, so run `./update.sh` in
+the folder you built it from as well. Until then a newer widget package keeps
+working without its new features, and its *Appearance* settings page says
+which engine version it found and which it needs.
+
+**Restarting plasmashell yourself:**
 
 ```bash
-git pull
-./install.sh
 systemctl --user restart plasma-plasmashell.service
 ```
 
-Things worth knowing:
+If that command fails because Plasma does not run as a systemd user service on
+your system, log out and back in instead.
 
-* **Your settings stay.** They are stored by Plasma, not in either installed
-  half, and settings added by a new version start out at values that keep the
-  old behaviour.
-* **Update both halves together.** If the widget came from *Get New Widgets*,
-  Plasma updates the widget package from there, but the engine only changes
-  when it is rebuilt — pull and run `./install.sh` (or `./update.sh`) as well.
-  A widget package newer than its engine keeps working without the new
-  features, and its *Appearance* settings page says which engine version it
-  found and which it needs.
-* **No git clone?** Download the new version and run its `./install.sh`; it
-  upgrades an existing installation in place.
-
-[CHANGELOG.md](CHANGELOG.md) lists what each version changed and which halves
-it touched.
+[CHANGELOG.md](CHANGELOG.md) lists what each version changed, which halves it
+touched, and anything an update needs beyond these steps.
 
 ## How it works
 
@@ -170,22 +182,31 @@ and marked `(patched)` at each site:
 1. `TerminalSession.cpp` — `TERM` is passed to the child through the session
    environment instead of being set on the hosting process.
 2. `Session.cpp` — the `COLORFGBG` hint is appended to a copy of the
-   environment at launch, so repeated starts do not accumulate copies of it.
+   environment at launch, so repeated starts do not accumulate copies of it,
+   and says dark or light according to the view's actual background colour.
+   The session's bell is connected to the view, which nothing else did, and
+   a shell killed by a signal reports that it finished.
 3. `TerminalSession.h` — added a `konsoleSession()` accessor, so scrollback and
    emulation resets can be driven from QML.
 4. `BlockArray.cpp` — the four block offsets passed to `fseek()` are computed
    as `long` rather than multiplied as `int` and widened afterwards, which
    overflows above a 2 GiB history file. Found by CodeQL; the code is an
    unused history backend, so nothing in the widget can reach it.
+5. `TerminalDisplay.cpp`, `TerminalDisplay.h` — `drawCharacters()` no longer
+   calls `setBold(false)`, which reset a Light or Medium base font to Regular
+   for italic and underlined text, and raises bold text to Bold only from a
+   lighter base, since Qt 6 already counts SemiBold as bold. The antialiasing
+   switch belongs to each view instead of being shared by all of them, takes
+   effect at once, and can be turned back on.
 
 ## Settings
 
 **Appearance** — follow your Konsole profile font or pick a family, style
-(Light, Medium, Italic, … — whatever the family is installed in) and size,
+(Light, Medium, Italic, … — any weight or italic the family is installed in) and size,
 line spacing, colour scheme (21 ship with the widget, and any schemes Konsole
 already has installed are listed too) with a live preview swatch, widget
 background (Plasma frame / translucent / none), terminal opacity, padding,
-cursor shape, blinking cursor, full-height cursor, bold-as-intense, glyph
+cursor shape, blinking cursor, full-height cursor, bold font for bold text, glyph
 antialiasing, title-and-toolbar strip, scrollbar and scrollbar auto-hide.
 
 **Shell** — program and arguments, working directory, a command to run at

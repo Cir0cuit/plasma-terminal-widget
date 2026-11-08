@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QFont>
 #include <QFontDatabase>
+#include <QFontInfo>
 #include <QSettings>
 #include <QStandardPaths>
 
@@ -46,7 +47,18 @@ QList<StyleKey> styleKeys(const QString &family)
             continue;
         }
         seen << style;
-        keys << styleKey(family, style);
+        const StyleKey key = styleKey(family, style);
+        // The terminal is given a weight and slant, not a style name, so a
+        // style those resolve away from (Noto Sans Mono's Condensed widths,
+        // for one) cannot be drawn and is left out.
+        QFont font(family);
+        font.setWeight(QFont::Weight(key.weight));
+        font.setItalic(key.slanted);
+        const QString resolved = QFontInfo(font).styleName();
+        if (resolved != style && styles.contains(resolved)) {
+            continue;
+        }
+        keys << key;
     }
     std::stable_sort(keys.begin(), keys.end(), [](const StyleKey &a, const StyleKey &b) {
         if (a.slanted != b.slanted) {
@@ -226,7 +238,7 @@ QVariantMap TerminalInfo::konsoleProfile() const
             // was picked by name, as a style name. The name is only for
             // display; the weight and slant are what the terminal is given.
             QString styleName = font.styleName();
-            if (!styleName.isEmpty() && QFontDatabase::styles(font.family()).contains(styleName)) {
+            if (!styleName.isEmpty() && fontStyles(font.family()).contains(styleName)) {
                 const StyleKey key = styleKey(font.family(), styleName);
                 profile[QStringLiteral("fontWeight")] = key.weight;
                 profile[QStringLiteral("fontItalic")] = key.slanted;

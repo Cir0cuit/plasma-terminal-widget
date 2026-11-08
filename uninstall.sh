@@ -4,7 +4,7 @@
 # first, or plasmashell will show an empty placeholder until it is restarted.
 set -uo pipefail
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")" || exit 1
 
 MODULE_PATH="io/github/cir0cuit/plasmaterminal/core"
 

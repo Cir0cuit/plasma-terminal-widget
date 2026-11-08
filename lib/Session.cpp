@@ -173,6 +173,9 @@ void Session::setView(TerminalDisplay *widget)
 
         widget->setBracketedPasteMode(_emulation->programBracketedPasteMode());
 
+        // (patched) nothing else delivers the session's bell to the view.
+        connect(this, &Session::bellRequest, widget, &TerminalDisplay::bell);
+
         widget->setScreenWindow(_emulation->createWindow());
     }
 
@@ -263,12 +266,16 @@ void Session::run()
     // tell the terminal exactly which colors are being used, but instead approximates
     // the color scheme as "black on white" or "white on black" depending on whether
     // the background color is deemed dark or not
-    QString backgroundColorHint = _hasDarkBackground ? QLatin1String("COLORFGBG=15;0") : QLatin1String("COLORFGBG=0;15");
+    // (patched) from the view's actual background, by ColorScheme's rule;
+    // the stored flag was never updated from the colour scheme.
+    const bool dark = _view ? _view->colorTable()[DEFAULT_BACK_COLOR].color.value() < 127 : _hasDarkBackground;
+    QString backgroundColorHint = dark ? QLatin1String("COLORFGBG=15;0") : QLatin1String("COLORFGBG=0;15");
 
     /* if we do all the checking if this shell exists then we use it ;)
      * Dont know about the arguments though.. maybe youll need some more checking im not sure
      * However this works on Arch and FreeBSD now.
      */
+    // (patched) appended to a copy, so repeated starts do not accumulate it.
     QStringList runEnvironment = _environment;
     runEnvironment << backgroundColorHint;
     int result = _shellProcess->start(exec, _arguments, runEnvironment);
@@ -544,8 +551,8 @@ void Session::done(int exitStatus)
 
     if (!_wantedClose && _shellProcess->exitStatus() != QProcess::NormalExit)
         message = tr("Session '%1' exited unexpectedly.").arg(_nameTitle);
-    else
-        Q_EMIT finished();
+    // (patched) a shell killed by a signal has finished too.
+    Q_EMIT finished();
 }
 
 Emulation *Session::emulation() const

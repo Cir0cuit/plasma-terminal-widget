@@ -52,7 +52,7 @@
             <default>false</default>
         </entry>
         <entry name="boldIntense" type="Bool">
-            <label>Draw bold text in the intense colour variant</label>
+            <label>Draw bold text in a bold font</label>
             <default>true</default>
         </entry>
         <entry name="antialiasText" type="Bool">

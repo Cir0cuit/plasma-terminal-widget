@@ -3,13 +3,21 @@
 // The widget comes in two halves that are installed separately: this QML
 // package and the compiled terminal engine on Qt's import path. They can be
 // updated at different times - the package from Get New Widgets, the engine
-// only by rebuilding it - so the package checks which engine it is running on.
+// only by rebuilding it - so the settings pages check which engine they are
+// running on, through EngineInfo.qml.
+//
+// TerminalPane.qml must not import this file, nor any other file that an
+// older release lacked. Get New Widgets can replace the package while Plasma
+// runs, and a terminal opened after that loads the new TerminalPane.qml, but
+// Plasma's QML engine still has the old folder listing and cannot find files
+// that are new. The settings pages are safe: each settings dialog gets a
+// fresh engine.
 
 .pragma library
 
-// The oldest engine this package works with. Raise it in the same change
-// that makes the QML use something only a newer engine has, and keep the
-// project version in CMakeLists.txt at least as high.
+// The oldest engine this package works fully with. Raise it in the same
+// change that adds anything users notice to the engine, new API or a fix, and
+// keep the project version in CMakeLists.txt at least as high.
 var requiredEngine = "1.1.0";
 
 function parts(version) {

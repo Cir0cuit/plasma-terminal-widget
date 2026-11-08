@@ -7,8 +7,6 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 
-import io.github.cir0cuit.plasmaterminal.core as PT
-
 KCM.SimpleKCM {
     id: page
 
@@ -22,117 +20,133 @@ KCM.SimpleKCM {
     property bool cfg_flowControl
     property bool cfg_autoStart
 
-    Kirigami.FormLayout {
+    ColumnLayout {
         anchors.left: parent.left
         anchors.right: parent.right
+        spacing: Kirigami.Units.largeSpacing
 
-        QQC2.Label {
-            text: i18n("Program, arguments, working directory, environment and the startup command take effect after Restart Session in the right-click menu.")
-            opacity: 0.7
-            font: Kirigami.Theme.smallFont
-            wrapMode: Text.WordWrap
+        EngineStatus {
+            id: engineStatus
             Layout.fillWidth: true
-            // Uncapped, its one-line width would push the form into narrow mode.
-            Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+            outdatedNotes: [
+                {
+                    version: "1.1.0",
+                    text: i18n("Until it is rebuilt, a Program given as a full path that does not exist starts the shell from $SHELL instead of showing \"Could not start\", and Clear Scrollback and Reset leaves the cleared screen in the scrollback and draws no new prompt.")
+                }
+            ]
         }
 
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Program:")
-            text: page.cfg_shellProgram
-            onTextChanged: page.cfg_shellProgram = text
-            placeholderText: PT.TerminalInfo.defaultShell()
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 18
-        }
+        Kirigami.FormLayout {
+            Layout.fillWidth: true
 
-        QQC2.Label {
-            text: i18n("Leave empty to use the login shell from $SHELL.")
-            opacity: 0.7
-            font: Kirigami.Theme.smallFont
-        }
+            QQC2.Label {
+                text: i18n("Program, arguments, working directory, environment and the startup command take effect after Restart Session in the right-click menu.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+                // Uncapped, its one-line width would push the form into narrow mode.
+                Layout.maximumWidth: Kirigami.Units.gridUnit * 20
+            }
 
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Arguments:")
-            text: page.cfg_shellArgs
-            onTextChanged: page.cfg_shellArgs = text
-            placeholderText: i18n("e.g. -l")
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 18
-        }
+            QQC2.TextField {
+                Kirigami.FormData.label: i18n("Program:")
+                text: page.cfg_shellProgram
+                onTextChanged: page.cfg_shellProgram = text
+                placeholderText: engineStatus.info ? engineStatus.info.defaultShell() : ""
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 18
+            }
 
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Working directory:")
-            text: page.cfg_workingDirectory
-            onTextChanged: page.cfg_workingDirectory = text
-            placeholderText: PT.TerminalInfo.homeDirectory()
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 18
-        }
+            QQC2.Label {
+                text: i18n("Leave empty to use the login shell from $SHELL.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+            }
 
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Run at startup:")
-            text: page.cfg_startupCommand
-            onTextChanged: page.cfg_startupCommand = text
-            placeholderText: i18n("e.g. btop")
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 18
-        }
+            QQC2.TextField {
+                Kirigami.FormData.label: i18n("Arguments:")
+                text: page.cfg_shellArgs
+                onTextChanged: page.cfg_shellArgs = text
+                placeholderText: i18n("e.g. -l")
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 18
+            }
 
-        QQC2.CheckBox {
-            text: i18n("Start the shell as soon as the widget loads")
-            checked: page.cfg_autoStart
-            onToggled: page.cfg_autoStart = checked
-        }
+            QQC2.TextField {
+                Kirigami.FormData.label: i18n("Working directory:")
+                text: page.cfg_workingDirectory
+                onTextChanged: page.cfg_workingDirectory = text
+                placeholderText: engineStatus.info ? engineStatus.info.homeDirectory() : ""
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 18
+            }
 
-        Item {
-            Kirigami.FormData.isSection: true
-        }
+            QQC2.TextField {
+                Kirigami.FormData.label: i18n("Run at startup:")
+                text: page.cfg_startupCommand
+                onTextChanged: page.cfg_startupCommand = text
+                placeholderText: i18n("e.g. btop")
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 18
+            }
 
-        QQC2.CheckBox {
-            Kirigami.FormData.label: i18n("Scrollback:")
-            text: i18n("Unlimited (kept in a temporary file)")
-            checked: page.cfg_unlimitedScrollback
-            onToggled: page.cfg_unlimitedScrollback = checked
-        }
+            QQC2.CheckBox {
+                text: i18n("Start the shell as soon as the widget loads")
+                checked: page.cfg_autoStart
+                onToggled: page.cfg_autoStart = checked
+            }
 
-        QQC2.SpinBox {
-            Kirigami.FormData.label: i18n("Lines:")
-            from: 0
-            to: 1000000
-            stepSize: 1000
-            enabled: !page.cfg_unlimitedScrollback
-            value: page.cfg_scrollbackLines
-            onValueModified: page.cfg_scrollbackLines = value
-        }
+            Item {
+                Kirigami.FormData.isSection: true
+            }
 
-        Item {
-            Kirigami.FormData.isSection: true
-        }
+            QQC2.CheckBox {
+                Kirigami.FormData.label: i18n("Scrollback:")
+                text: i18n("Unlimited (kept in a temporary file)")
+                checked: page.cfg_unlimitedScrollback
+                onToggled: page.cfg_unlimitedScrollback = checked
+            }
 
-        QQC2.CheckBox {
-            Kirigami.FormData.label: i18n("Flow control:")
-            text: i18n("Ctrl+S and Ctrl+Q suspend and resume output")
-            checked: page.cfg_flowControl
-            onToggled: page.cfg_flowControl = checked
-        }
+            QQC2.SpinBox {
+                Kirigami.FormData.label: i18n("Lines:")
+                from: 0
+                to: 1000000
+                stepSize: 1000
+                enabled: !page.cfg_unlimitedScrollback
+                value: page.cfg_scrollbackLines
+                onValueModified: page.cfg_scrollbackLines = value
+            }
 
-        Item {
-            Kirigami.FormData.isSection: true
-        }
+            Item {
+                Kirigami.FormData.isSection: true
+            }
 
-        QQC2.Label {
-            Kirigami.FormData.label: i18n("Environment:")
-            text: i18n("One NAME=value pair per line, added to the shell's environment.")
-            opacity: 0.7
-            font: Kirigami.Theme.smallFont
-        }
+            QQC2.CheckBox {
+                Kirigami.FormData.label: i18n("Flow control:")
+                text: i18n("Ctrl+S and Ctrl+Q suspend and resume output")
+                checked: page.cfg_flowControl
+                onToggled: page.cfg_flowControl = checked
+            }
 
-        QQC2.ScrollView {
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 20
-            // FormLayout passes only the width on to its items, so the height has to be implicit.
-            implicitHeight: Kirigami.Units.gridUnit * 7
+            Item {
+                Kirigami.FormData.isSection: true
+            }
 
-            QQC2.TextArea {
-                text: page.cfg_environmentVars
-                onTextChanged: page.cfg_environmentVars = text
-                wrapMode: TextEdit.NoWrap
-                font.family: "monospace"
+            QQC2.Label {
+                Kirigami.FormData.label: i18n("Environment:")
+                text: i18n("One NAME=value pair per line, added to the shell's environment.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+            }
+
+            QQC2.ScrollView {
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 20
+                // FormLayout passes only the width on to its items, so the height has to be implicit.
+                implicitHeight: Kirigami.Units.gridUnit * 7
+
+                QQC2.TextArea {
+                    text: page.cfg_environmentVars
+                    onTextChanged: page.cfg_environmentVars = text
+                    wrapMode: TextEdit.NoWrap
+                    font.family: "monospace"
+                }
             }
         }
     }

@@ -7,10 +7,6 @@ import QtQuick.Layouts
 import org.kde.kcmutils as KCM
 import org.kde.kirigami as Kirigami
 
-import io.github.cir0cuit.plasmaterminal.core as PT
-
-import "version.js" as Version
-
 KCM.SimpleKCM {
     id: page
 
@@ -31,22 +27,31 @@ KCM.SimpleKCM {
     property bool cfg_showScrollBar
     property bool cfg_scrollBarAutoHide
 
-    readonly property var fontFamilies: PT.TerminalInfo.monospaceFamilies()
-    readonly property var schemes: PT.TerminalInfo.colorSchemes()
-    readonly property var konsoleProfile: PT.TerminalInfo.konsoleProfile()
+    // The engine's TerminalInfo, or null when it is not installed.
+    readonly property var engine: engineStatus.info
+
+    readonly property var fontFamilies: engine ? engine.monospaceFamilies() : []
+    readonly property var schemes: engine ? engine.colorSchemes() : []
+    readonly property var konsoleProfile: engine ? engine.konsoleProfile() : ({})
 
     // The font style lookups only exist in engines from 1.1.0 on.
-    readonly property bool engineOutdated: Version.engineOutdated(PT.TerminalInfo)
+    readonly property bool engineHasFontStyles: engine !== null && typeof engine.fontStyleInfo === "function"
+
+    // Engines before 1.1.0 know a font installed from two foundries only as
+    // "Name [Foundry]", so the bare name is also looked up in Qt's own list.
+    function familyInstalled(family) {
+        return (engine !== null && engine.hasFamily(family)) || Qt.fontFamilies().some(f => f === family || f.startsWith(family + " ["));
+    }
 
     readonly property bool matchKonsoleFont: cfg_fontFamily.length === 0 && cfg_fontSize === 0 && cfg_fontStyle.length === 0
     readonly property string konsoleFontSummary: {
         const family = konsoleProfile.fontFamily !== undefined ? konsoleProfile.fontFamily : i18n("Monospace");
         const size = konsoleProfile.fontSize !== undefined ? konsoleProfile.fontSize : 10;
-        if (konsoleProfile.fontFamily !== undefined && !PT.TerminalInfo.hasFamily(family)) {
+        if (konsoleProfile.fontFamily !== undefined && !familyInstalled(family)) {
             return i18n("%1 is not installed, using Monospace, %2 pt", family, size);
         }
         const style = konsoleProfile.fontStyle;
-        if (!engineOutdated && style !== undefined && style !== PT.TerminalInfo.regularFontStyle(family)) {
+        if (engineHasFontStyles && style !== undefined && style !== engine.regularFontStyle(family)) {
             return i18n("%1 %2, %3 pt", family, style, size);
         }
         return i18n("%1, %2 pt", family, size);
@@ -55,10 +60,10 @@ KCM.SimpleKCM {
     // What the pickers show: the configured font, or the Konsole profile's
     // while the widget follows it.
     readonly property string effectiveFontFamily: {
-        if (cfg_fontFamily.length > 0 && PT.TerminalInfo.hasFamily(cfg_fontFamily)) {
+        if (cfg_fontFamily.length > 0 && familyInstalled(cfg_fontFamily)) {
             return cfg_fontFamily;
         }
-        if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
+        if (konsoleProfile.fontFamily !== undefined && familyInstalled(konsoleProfile.fontFamily)) {
             return konsoleProfile.fontFamily;
         }
         return "Monospace";
@@ -67,14 +72,14 @@ KCM.SimpleKCM {
     // list leaves them out.
     readonly property var familyChoices: {
         const extra = [effectiveFontFamily];
-        if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
+        if (konsoleProfile.fontFamily !== undefined && familyInstalled(konsoleProfile.fontFamily)) {
             extra.push(konsoleProfile.fontFamily);
         }
         return extra.filter((f, i) => extra.indexOf(f) === i && fontFamilies.indexOf(f) < 0).concat(fontFamilies);
     }
-    readonly property var fontStyles: engineOutdated ? [] : PT.TerminalInfo.fontStyles(effectiveFontFamily)
+    readonly property var fontStyles: engineHasFontStyles ? engine.fontStyles(effectiveFontFamily) : []
     readonly property string effectiveFontStyle: {
-        if (engineOutdated) {
+        if (!engineHasFontStyles) {
             return "";
         }
         if (cfg_fontStyle.length > 0 && fontStyles.indexOf(cfg_fontStyle) >= 0) {
@@ -83,9 +88,9 @@ KCM.SimpleKCM {
         if (cfg_fontFamily.length === 0 && konsoleProfile.fontStyle !== undefined && fontStyles.indexOf(konsoleProfile.fontStyle) >= 0) {
             return konsoleProfile.fontStyle;
         }
-        return PT.TerminalInfo.regularFontStyle(effectiveFontFamily);
+        return engine.regularFontStyle(effectiveFontFamily);
     }
-    readonly property var effectiveFontStyleInfo: engineOutdated || effectiveFontStyle.length === 0 ? {} : PT.TerminalInfo.fontStyleInfo(effectiveFontFamily, effectiveFontStyle)
+    readonly property var effectiveFontStyleInfo: !engineHasFontStyles || effectiveFontStyle.length === 0 ? {} : engine.fontStyleInfo(effectiveFontFamily, effectiveFontStyle)
     readonly property string effectiveScheme: {
         if (cfg_colorScheme.length > 0 && schemes.indexOf(cfg_colorScheme) >= 0) {
             return cfg_colorScheme;
@@ -101,16 +106,13 @@ KCM.SimpleKCM {
         anchors.right: parent.right
         spacing: Kirigami.Units.largeSpacing
 
-        Kirigami.InlineMessage {
+        EngineStatus {
+            id: engineStatus
             Layout.fillWidth: true
-            visible: page.engineOutdated
-            type: Kirigami.MessageType.Warning
-            text: i18n("The terminal engine on this system is version %1, older than this widget, which needs %2. Font styles and the fixes made in the engine stay unavailable until it is rebuilt: in your copy of the project, run git pull, then ./update.sh. If you have just done that, restart Plasma.", Version.installedEngine(PT.TerminalInfo), Version.requiredEngine)
-            actions: [
-                Kirigami.Action {
-                    icon.name: "internet-services"
-                    text: i18n("How to update")
-                    onTriggered: Qt.openUrlExternally("https://github.com/Cir0cuit/plasma-terminal-widget#updating")
+            outdatedNotes: [
+                {
+                    version: "1.1.0",
+                    text: i18n("Until it is rebuilt, font styles are unavailable, Antialias is one setting for all terminal widgets and takes effect only after a font change, Padding takes effect only after a resize, and the Family list still has symbol fonts and a separate entry for each weight but leaves out Noto Sans Mono. The blinking cursor still stops blinking from about the 40th column, and Cursor covers the full line height and Draw bold text in a bold font change only what is drawn afterwards.")
                 }
             ]
         }
@@ -120,6 +122,8 @@ KCM.SimpleKCM {
 
             QQC2.CheckBox {
                 Kirigami.FormData.label: i18n("Font:")
+                // The font and colour scheme pickers list what the engine finds.
+                visible: page.engine !== null
                 text: i18n("Match my Konsole profile (%1)", page.konsoleFontSummary)
                 checked: page.matchKonsoleFont
                 onToggled: {
@@ -140,6 +144,7 @@ KCM.SimpleKCM {
             QQC2.ComboBox {
                 id: fontCombo
                 Kirigami.FormData.label: i18n("Family:")
+                visible: page.engine !== null
                 enabled: !page.matchKonsoleFont
                 model: page.familyChoices
                 currentIndex: Math.max(0, page.familyChoices.indexOf(page.effectiveFontFamily))
@@ -148,7 +153,7 @@ KCM.SimpleKCM {
                     // Keep the style when the new family has one of that name
                     // (most have Regular, Bold, Italic); otherwise fall back to
                     // the new family's regular face.
-                    if (page.cfg_fontStyle.length > 0 && (page.engineOutdated || PT.TerminalInfo.fontStyles(family).indexOf(page.cfg_fontStyle) < 0)) {
+                    if (page.cfg_fontStyle.length > 0 && (!page.engineHasFontStyles || page.engine.fontStyles(family).indexOf(page.cfg_fontStyle) < 0)) {
                         page.cfg_fontStyle = "";
                     }
                     page.cfg_fontFamily = family;
@@ -158,8 +163,9 @@ KCM.SimpleKCM {
 
             QQC2.ComboBox {
                 Kirigami.FormData.label: i18n("Style:")
+                visible: page.engine !== null
                 enabled: !page.matchKonsoleFont && page.fontStyles.length > 1
-                model: page.engineOutdated ? [i18n("Regular")] : page.fontStyles
+                model: page.engineHasFontStyles ? page.fontStyles : [i18n("Regular")]
                 currentIndex: Math.max(0, page.fontStyles.indexOf(page.effectiveFontStyle))
                 onActivated: page.cfg_fontStyle = page.fontStyles[currentIndex]
                 Layout.minimumWidth: Kirigami.Units.gridUnit * 14
@@ -167,6 +173,7 @@ KCM.SimpleKCM {
 
             QQC2.SpinBox {
                 Kirigami.FormData.label: i18n("Size:")
+                visible: page.engine !== null
                 enabled: !page.matchKonsoleFont
                 from: 4
                 to: 72
@@ -192,6 +199,7 @@ KCM.SimpleKCM {
 
             RowLayout {
                 Kirigami.FormData.label: i18n("Colour scheme:")
+                visible: page.engine !== null
                 spacing: Kirigami.Units.smallSpacing
 
                 QQC2.ComboBox {
@@ -204,10 +212,11 @@ KCM.SimpleKCM {
 
                 // Live preview of the scheme's background and foreground.
                 Rectangle {
-                    readonly property var info: PT.TerminalInfo.colorSchemeInfo(page.effectiveScheme)
+                    readonly property var info: page.engine ? page.engine.colorSchemeInfo(page.effectiveScheme) : ({})
                     Layout.preferredWidth: Kirigami.Units.gridUnit * 4
                     Layout.preferredHeight: schemeCombo.height
-                    radius: Kirigami.Units.cornerRadius
+                    // cornerRadius is new in KDE Frameworks 6.2.
+                    radius: Kirigami.Units.cornerRadius !== undefined ? Kirigami.Units.cornerRadius : Kirigami.Units.smallSpacing
                     border.width: 1
                     border.color: Kirigami.Theme.disabledTextColor
                     color: info.background !== undefined ? info.background : "transparent"

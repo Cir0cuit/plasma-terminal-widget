@@ -20,83 +20,100 @@ KCM.SimpleKCM {
     property string cfg_wordCharacters
     property int cfg_exitAction
 
-    Kirigami.FormLayout {
+    ColumnLayout {
         anchors.left: parent.left
         anchors.right: parent.right
+        spacing: Kirigami.Units.largeSpacing
 
-        QQC2.CheckBox {
-            Kirigami.FormData.label: i18n("Mouse:")
-            text: i18n("Focus the terminal when it is clicked")
-            checked: page.cfg_focusOnClick
-            onToggled: page.cfg_focusOnClick = checked
+        // Nothing here reads the engine, but the bell and the exit action
+        // depend on it.
+        EngineStatus {
+            Layout.fillWidth: true
+            outdatedNotes: [
+                {
+                    version: "1.1.0",
+                    text: i18n("Until it is rebuilt, the terminal bell does nothing in any mode, and a shell killed by a signal does not trigger the action chosen under \"When the shell exits\". Read-only still lets text from input methods through, and Ctrl+wheel can change the font size several steps per wheel notch.")
+                }
+            ]
         }
 
-        QQC2.CheckBox {
-            text: i18n("Copy the selection to the clipboard immediately")
-            checked: page.cfg_copyOnSelect
-            onToggled: page.cfg_copyOnSelect = checked
-        }
+        Kirigami.FormLayout {
+            Layout.fillWidth: true
 
-        QQC2.CheckBox {
-            text: i18n("Paste the selection on middle click")
-            checked: page.cfg_middleClickPaste
-            onToggled: page.cfg_middleClickPaste = checked
-        }
+            QQC2.CheckBox {
+                Kirigami.FormData.label: i18n("Mouse:")
+                text: i18n("Focus the terminal when it is clicked")
+                checked: page.cfg_focusOnClick
+                onToggled: page.cfg_focusOnClick = checked
+            }
 
-        QQC2.CheckBox {
-            text: i18n("Ctrl+wheel changes the font size")
-            checked: page.cfg_wheelZoom
-            onToggled: page.cfg_wheelZoom = checked
-        }
+            QQC2.CheckBox {
+                text: i18n("Copy the selection to the clipboard immediately")
+                checked: page.cfg_copyOnSelect
+                onToggled: page.cfg_copyOnSelect = checked
+            }
 
-        QQC2.TextField {
-            Kirigami.FormData.label: i18n("Word characters:")
-            text: page.cfg_wordCharacters
-            onTextChanged: page.cfg_wordCharacters = text
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 10
-        }
+            QQC2.CheckBox {
+                text: i18n("Paste the selection on middle click")
+                checked: page.cfg_middleClickPaste
+                onToggled: page.cfg_middleClickPaste = checked
+            }
 
-        QQC2.Label {
-            text: i18n("Counted as part of a word when double-clicking.")
-            opacity: 0.7
-            font: Kirigami.Theme.smallFont
-        }
+            QQC2.CheckBox {
+                text: i18n("Ctrl+wheel changes the font size")
+                checked: page.cfg_wheelZoom
+                onToggled: page.cfg_wheelZoom = checked
+            }
 
-        Item {
-            Kirigami.FormData.isSection: true
-        }
+            QQC2.TextField {
+                Kirigami.FormData.label: i18n("Word characters:")
+                text: page.cfg_wordCharacters
+                onTextChanged: page.cfg_wordCharacters = text
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 10
+            }
 
-        QQC2.CheckBox {
-            Kirigami.FormData.label: i18n("Keyboard:")
-            text: i18n("Ctrl+Shift+C/V copy and paste, Ctrl+Shift+plus/minus/0 zoom")
-            checked: page.cfg_builtInShortcuts
-            onToggled: page.cfg_builtInShortcuts = checked
-        }
+            QQC2.Label {
+                text: i18n("Counted as part of a word when double-clicking.")
+                opacity: 0.7
+                font: Kirigami.Theme.smallFont
+            }
 
-        QQC2.CheckBox {
-            text: i18n("Read-only: ignore all keyboard input")
-            checked: page.cfg_readOnly
-            onToggled: page.cfg_readOnly = checked
-        }
+            Item {
+                Kirigami.FormData.isSection: true
+            }
 
-        Item {
-            Kirigami.FormData.isSection: true
-        }
+            QQC2.CheckBox {
+                Kirigami.FormData.label: i18n("Keyboard:")
+                text: i18n("Ctrl+Shift+C/V copy and paste, Ctrl+Shift+plus/minus/0 zoom")
+                checked: page.cfg_builtInShortcuts
+                onToggled: page.cfg_builtInShortcuts = checked
+            }
 
-        QQC2.ComboBox {
-            Kirigami.FormData.label: i18n("Terminal bell:")
-            model: [i18n("System beep"), i18n("Notification"), i18n("Flash the terminal"), i18n("Ignore")]
-            currentIndex: page.cfg_bellMode
-            onActivated: page.cfg_bellMode = currentIndex
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 12
-        }
+            QQC2.CheckBox {
+                text: i18n("Read-only: ignore all keyboard input")
+                checked: page.cfg_readOnly
+                onToggled: page.cfg_readOnly = checked
+            }
 
-        QQC2.ComboBox {
-            Kirigami.FormData.label: i18n("When the shell exits:")
-            model: [i18n("Start a new session"), i18n("Offer a restart button"), i18n("Leave the last screen visible")]
-            currentIndex: page.cfg_exitAction
-            onActivated: page.cfg_exitAction = currentIndex
-            Layout.minimumWidth: Kirigami.Units.gridUnit * 14
+            Item {
+                Kirigami.FormData.isSection: true
+            }
+
+            QQC2.ComboBox {
+                Kirigami.FormData.label: i18n("Terminal bell:")
+                model: [i18n("System beep"), i18n("Notification"), i18n("Flash the terminal"), i18n("Ignore")]
+                currentIndex: page.cfg_bellMode
+                onActivated: page.cfg_bellMode = currentIndex
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 12
+            }
+
+            QQC2.ComboBox {
+                Kirigami.FormData.label: i18n("When the shell exits:")
+                model: [i18n("Start a new session"), i18n("Offer a restart button"), i18n("Leave the last screen visible")]
+                currentIndex: page.cfg_exitAction
+                onActivated: page.cfg_exitAction = currentIndex
+                Layout.minimumWidth: Kirigami.Units.gridUnit * 14
+            }
         }
     }
 }

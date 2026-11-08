@@ -76,7 +76,13 @@ PlasmoidItem {
     fullRepresentation: Loader {
         id: paneLoader
 
-        source: Qt.resolvedUrl("TerminalPane.qml")
+        // Compiled here rather than by the Loader, so the error can be read:
+        // a missing engine is not the only way the pane can fail to load.
+        readonly property Component paneComponent: Qt.createComponent(Qt.resolvedUrl("TerminalPane.qml"), Component.PreferSynchronous, paneLoader)
+        readonly property string paneError: paneComponent.status === Component.Error ? paneComponent.errorString() : ""
+        readonly property bool engineMissing: paneError.indexOf("io.github.cir0cuit.plasmaterminal.core") >= 0
+
+        sourceComponent: paneComponent.status === Component.Ready ? paneComponent : null
 
         Layout.minimumWidth: Kirigami.Units.gridUnit * 12
         Layout.minimumHeight: Kirigami.Units.gridUnit * 6
@@ -89,20 +95,43 @@ PlasmoidItem {
             }
         }
 
+        Component.onCompleted: {
+            if (paneError.length > 0 && !engineMissing) {
+                console.warn(paneError);
+            }
+        }
+
         PlasmaExtras.PlaceholderMessage {
             anchors.centerIn: parent
             width: parent.width - Kirigami.Units.gridUnit * 2
-            visible: paneLoader.status === Loader.Error
+            visible: paneLoader.engineMissing
 
             iconName: "utilities-terminal"
             text: i18n("Terminal engine not installed")
-            explanation: i18n("The terminal is drawn by a compiled QML module that has to be built and installed once, system-wide; a widget package cannot do that on its own. The project page has the three commands.")
+            // Plasma keeps a failed import until it restarts, so a widget
+            // still says this after the engine has been installed. The
+            // settings pages do not need the last sentence: each settings
+            // dialog loads the engine afresh.
+            explanation: i18n("The terminal is drawn by a compiled QML module that has to be built and installed system-wide; a widget package cannot do that on its own. The project page on GitHub has the commands: install the build dependencies for your distribution, build and install, then restart Plasma.") + " " + i18n("If you have installed it already, restarting Plasma is enough.")
 
             helpfulAction: QQC2.Action {
                 icon.name: "internet-services"
                 text: i18n("Open the project page")
                 onTriggered: Qt.openUrlExternally("https://github.com/Cir0cuit/plasma-terminal-widget#build-and-install")
             }
+        }
+
+        // For example a file that an update added a moment ago: Plasma does
+        // not see new files in a widget's folder until it restarts.
+        PlasmaExtras.PlaceholderMessage {
+            anchors.centerIn: parent
+            width: parent.width - Kirigami.Units.gridUnit * 2
+            visible: paneLoader.paneError.length > 0 && !paneLoader.engineMissing
+
+            iconName: "utilities-terminal"
+            text: i18n("The terminal could not be loaded")
+            // The first error, without the folder each file name starts with.
+            explanation: i18n("If the widget was updated a moment ago, restart Plasma.") + "\n\n" + paneLoader.paneError.split("\n")[0].replace(/file:\/\/\S*\//g, "")
         }
     }
 }

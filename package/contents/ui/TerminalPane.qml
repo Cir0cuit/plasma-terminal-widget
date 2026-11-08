@@ -2,6 +2,12 @@
 //
 // The full representation: an optional header strip, the terminal itself and
 // a scrollbar for the scrollback buffer.
+//
+// This file must not import a file of this package that an earlier release
+// lacked, so it tests the engine for newer features instead of using
+// version.js. When Get New Widgets updates the package while Plasma runs, a
+// terminal opened afterwards reads this file fresh from disk, but Plasma's QML
+// engine still has the old folder listing cached and cannot find new files.
 
 import QtQuick
 import QtQuick.Layouts
@@ -12,11 +18,8 @@ import org.kde.plasma.components as PlasmaComponents
 import org.kde.plasma.extras as PlasmaExtras
 import org.kde.plasma.plasma5support as P5Support
 import org.kde.kirigami as Kirigami
-import org.kde.notification
 
 import io.github.cir0cuit.plasmaterminal.core as PT
-
-import "version.js" as Version
 
 Item {
     id: pane
@@ -29,29 +32,32 @@ Item {
     readonly property var availableSchemes: PT.TerminalInfo.colorSchemes()
 
     readonly property string fontFamily: {
-        if (cfg.fontFamily.length > 0 && PT.TerminalInfo.hasFamily(cfg.fontFamily)) {
+        if (cfg.fontFamily.length > 0 && familyInstalled(cfg.fontFamily)) {
             return cfg.fontFamily;
         }
-        if (konsoleProfile.fontFamily !== undefined && PT.TerminalInfo.hasFamily(konsoleProfile.fontFamily)) {
+        if (konsoleProfile.fontFamily !== undefined && familyInstalled(konsoleProfile.fontFamily)) {
             return konsoleProfile.fontFamily;
         }
         return "Monospace";
     }
 
-    // An engine older than this package lacks the font style lookups, so
-    // the terminal keeps the regular face until it is rebuilt.
-    readonly property bool engineOutdated: Version.engineOutdated(PT.TerminalInfo)
+    // Engines before 1.1.0 lack the font style lookups, so the terminal keeps
+    // the regular face until the engine is rebuilt.
+    readonly property bool engineHasFontStyles: typeof PT.TerminalInfo.fontStyleInfo === "function"
 
     // The style is handed to the terminal as a weight and a slant, not by
     // name, so bold text can still pick the family's real Bold face. An empty
     // style means the regular face - or, while the family itself follows the
     // Konsole profile, whatever style that profile uses.
     readonly property var fontStyleInfo: {
-        if (engineOutdated) {
+        if (!engineHasFontStyles) {
             return {};
         }
-        if (cfg.fontStyle.length > 0) {
-            return PT.TerminalInfo.fontStyleInfo(fontFamily, cfg.fontStyle);
+        // A widget created before an update keeps the old settings schema,
+        // without fontStyle, until Plasma restarts.
+        const style = cfg.fontStyle || "";
+        if (style.length > 0) {
+            return PT.TerminalInfo.fontStyleInfo(fontFamily, style);
         }
         if (cfg.fontFamily.length === 0 && konsoleProfile.fontWeight !== undefined && konsoleProfile.fontFamily === fontFamily) {
             return {
@@ -106,6 +112,12 @@ Item {
 
     // ------------------------------------------------------------------
     // helpers
+
+    // Engines before 1.1.0 know a font installed from two foundries only as
+    // "Name [Foundry]", so the bare name is also looked up in Qt's own list.
+    function familyInstalled(family) {
+        return PT.TerminalInfo.hasFamily(family) || Qt.fontFamilies().some(f => f === family || f.startsWith(family + " ["));
+    }
 
     // Shell-style words: quotes may appear anywhere in a word, a backslash
     // escapes outside single quotes, and an unmatched quote is kept as is.
@@ -227,18 +239,33 @@ Item {
         onTriggered: pane.restartSession()
     }
 
-    // "Terminal bell: Notification". Plasma's own event, so nothing extra has
-    // to be installed for it; one object per bell, gone once it closes.
-    Component {
-        id: bellNotification
+    // "Terminal bell: Notification". Plasma's own event, so the widget needs
+    // no notification config of its own; one object per bell, gone once it
+    // closes.
+    // The Notification type is looked up on the first bell rather than
+    // imported: some distributions ship its QML module separately, and a
+    // missing import would stop the whole terminal from loading.
+    property var bellNotification: null
+    property bool bellNotificationMissing: false
 
-        Notification {
-            componentName: "plasma_workspace"
-            eventId: "notification"
-            iconName: "utilities-terminal"
-            title: pane.titleText
-            text: i18n("The terminal rang its bell")
-            onClosed: destroy()
+    function notifyBell() {
+        if (bellNotification === null && !bellNotificationMissing) {
+            try {
+                bellNotification = Qt.createQmlObject("import QtQml\nimport org.kde.notification\nQtObject {\n    property Component notification: Component {\n        Notification {\n            onClosed: destroy()\n        }\n    }\n}\n", pane, "TerminalPane.qml/bellNotification").notification;
+            } catch (error) {
+                bellNotificationMissing = true;
+                console.warn("Terminal bell: no notifications, because the QML module org.kde.notification cannot be loaded:", error.message);
+                return;
+            }
+        }
+        if (bellNotification !== null) {
+            bellNotification.createObject(pane, {
+                componentName: "plasma_workspace",
+                eventId: "notification",
+                iconName: "utilities-terminal",
+                title: Qt.binding(() => pane.titleText),
+                text: i18n("The terminal rang its bell")
+            }).sendEvent();
         }
     }
 
@@ -376,7 +403,8 @@ Item {
             Rectangle {
                 anchors.fill: placeholder
                 anchors.margins: -Kirigami.Units.largeSpacing
-                radius: Kirigami.Units.cornerRadius
+                // cornerRadius is new in KDE Frameworks 6.2.
+                radius: Kirigami.Units.cornerRadius !== undefined ? Kirigami.Units.cornerRadius : Kirigami.Units.smallSpacing
                 color: Kirigami.Theme.backgroundColor
                 visible: placeholder.visible
             }
@@ -553,7 +581,7 @@ Item {
                     }
                 }
 
-                onNotifyBell: bellNotification.createObject(pane).sendEvent()
+                onNotifyBell: pane.notifyBell()
 
                 onZoomRequested: delta => pane.zoomDelta += delta
                 onZoomResetRequested: pane.zoomDelta = 0

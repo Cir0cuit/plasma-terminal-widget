@@ -12,8 +12,10 @@
 // Plasma's QML engine still has the old folder listing and cannot find files
 // that are new. The settings pages are safe: each settings dialog gets a
 // fresh engine.
-
-.pragma library
+//
+// Plain JavaScript, without ".pragma library": that line is QML-only syntax,
+// and code scanners that read this file as JavaScript reject all of it. The
+// functions keep no state, so a copy per importing page costs nothing.
 
 // The oldest engine this package works fully with. Raise it in the same
 // change that adds anything users notice to the engine, new API or a fix, and

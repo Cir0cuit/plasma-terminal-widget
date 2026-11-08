@@ -5,55 +5,19 @@
 set -uo pipefail
 
 cd "$(dirname "$0")" || exit 1
+# shellcheck source=scripts/common.sh
+. scripts/common.sh || exit 1
 
-MODULE_PATH="io/github/cir0cuit/plasmaterminal/core"
-
-# Run a command as root. Already root: run it. Otherwise sudo, and if that is
-# not installed (a minimal Debian or Arch may not have it), say so plainly
-# rather than dying on "sudo: command not found".
-as_root() {
-    if [ "$(id -u)" -eq 0 ]; then
-        "$@"
-    elif command -v sudo >/dev/null 2>&1; then
-        sudo "$@"
-    else
-        echo "error: this step needs root and sudo is not installed." >&2
-        echo "       Run the script as root, or: su -c '$*'" >&2
-        exit 1
-    fi
-}
-
-# Where Qt keeps its QML modules. This is not the same path on every
-# distribution - Fedora uses /usr/lib64/qt6/qml, Arch /usr/lib/qt6/qml, Debian
-# and Ubuntu a multiarch directory - so ask rather than assume, in the same
-# order of confidence CMakeLists.txt uses. Prints one candidate per line;
-# duplicates and paths that do not exist are dropped by the caller.
-qml_dir_candidates() {
-    local d tool
-    # What this build tree actually installed, if it is still around.
-    if [ -f build/install_manifest.txt ]; then
-        sed -n "s#\(.*\)/${MODULE_PATH}/.*#\1#p" build/install_manifest.txt | head -1
-    fi
-    # Ask Qt itself, exactly as the build does.
-    for tool in qtpaths6 qmake6; do
-        if command -v "$tool" >/dev/null 2>&1; then
-            d=$("$tool" -query QT_INSTALL_QML 2>/dev/null)
-            [ -n "$d" ] && printf '%s\n' "$d"
-        fi
-    done
-    # Last resort: the layouts the distributions actually use, for a machine
-    # where Qt's development tools were never installed or have since gone.
-    printf '%s\n' \
-        /usr/lib64/qt6/qml \
-        /usr/lib/qt6/qml \
-        "/usr/lib/$(uname -m)-linux-gnu/qt6/qml"
-}
+refuse_root
 
 echo "Removing the applet..."
-if command -v kpackagetool6 >/dev/null 2>&1; then
-    kpackagetool6 --type Plasma/Applet --remove io.github.cir0cuit.plasmaterminal || true
-else
+if ! command -v kpackagetool6 >/dev/null 2>&1; then
     echo "  kpackagetool6 not found - skipping (nothing to remove without it)."
+elif package_listed; then
+    kpackagetool6 --type Plasma/Applet --remove "$APPLET_ID" || true
+else
+    # kpackagetool6 --remove would report an error for this.
+    echo "  not installed."
 fi
 
 echo "Removing the QML module..."
@@ -79,11 +43,13 @@ while read -r qmldir; do
     found=1
     echo "  $qmldir/$MODULE_PATH"
     as_root rm -rf "$qmldir/$MODULE_PATH"
+    # No 2>/dev/null: su would ask for its password there, unseen. The
+    # parents exist, since core/ did, and non-empty ones are left quietly.
     as_root rmdir --ignore-fail-on-non-empty \
         "$qmldir/io/github/cir0cuit/plasmaterminal" \
         "$qmldir/io/github/cir0cuit" \
         "$qmldir/io/github" \
-        "$qmldir/io" 2>/dev/null || true
+        "$qmldir/io" || true
 done < <(qml_dir_candidates)
 
 if [ "$found" -eq 0 ]; then
